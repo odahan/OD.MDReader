@@ -30,7 +30,8 @@ internal static class ThemedDialog
         MessageBoxResult result = buttons == DialogButtons.YesNoCancel ? MessageBoxResult.Cancel : MessageBoxResult.None;
         void AddButton(string label, MessageBoxResult value, bool primary = false)
         {
-            var button = new Button { Content = label, MinWidth = 82, Padding = new Thickness(12, 5, 12, 5), Margin = new Thickness(8, 0, 0, 0), Background = primary ? new SolidColorBrush(dark ? Color.FromRgb(0, 94, 160) : Color.FromRgb(0, 96, 170)) : buttonBackground, BorderBrush = buttonBorder, Foreground = Brushes.White };
+            var buttonForeground = primary || dark ? Brushes.White : (Brush)new BrushConverter().ConvertFromString("#15171A")!;
+            var button = new Button { Content = label, MinWidth = 82, Padding = new Thickness(12, 5, 12, 5), Margin = new Thickness(8, 0, 0, 0), Background = primary ? new SolidColorBrush(dark ? Color.FromRgb(0, 94, 160) : Color.FromRgb(0, 96, 170)) : buttonBackground, BorderBrush = buttonBorder, Foreground = buttonForeground };
             button.Click += (_, _) => { result = value; dialog.DialogResult = true; };
             buttonPanel.Children.Add(button);
         }
