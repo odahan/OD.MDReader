@@ -559,9 +559,10 @@ internal partial class MainWindowViewModel : ObservableObject
         var styles = IsDarkTheme
             ? HtmlTemplates.DarkStyles
             : HtmlTemplates.LightStyles;
-        var script = includePreviewBridge
-            ? HtmlTemplates.ClickInterceptionScript
-            : string.Empty;
+        var script = HtmlTemplates.InternalAnchorScript
+            + (includePreviewBridge
+                ? HtmlTemplates.ClickInterceptionScript
+                : string.Empty);
 
         return HtmlTemplates.BuildDocument(
             BuildBaseTag(),

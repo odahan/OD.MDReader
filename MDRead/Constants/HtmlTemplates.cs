@@ -9,11 +9,24 @@ internal static class HtmlTemplates
     public const string BaseTagFormat = "<base href=\"{0}\">";
 
     /// <summary>
-    /// Gets the script that sends preview link clicks to the WPF host.
+    /// Gets the script that scrolls fragment links within the rendered document.
+    /// </summary>
+    public const string InternalAnchorScript =
+        "<script>document.addEventListener('click',function(e){" +
+        "var a=e.target.closest('a');if(!a)return;" +
+        "var h=a.getAttribute('href');if(!h||h.charAt(0)!=='#')return;" +
+        "e.preventDefault();var id=h.slice(1);try{id=decodeURIComponent(id);}catch(_){}" +
+        "if(!id){window.scrollTo(0,0);return;}" +
+        "var t=document.getElementById(id);if(t)t.scrollIntoView();},true);</script>";
+
+    /// <summary>
+    /// Gets the script that sends non-fragment preview link clicks to the WPF host.
     /// </summary>
     public const string ClickInterceptionScript =
         "<script>document.addEventListener('click',function(e){" +
-        "var a=e.target.closest('a');if(a&&a.href){e.preventDefault();" +
+        "var a=e.target.closest('a');if(!a)return;" +
+        "var h=a.getAttribute('href');if(h&&h.charAt(0)==='#')return;" +
+        "if(a.href){e.preventDefault();" +
         "window.chrome.webview.postMessage(a.href);}},true);</script>";
 
     /// <summary>Gets styles shared by light and dark preview themes.</summary>

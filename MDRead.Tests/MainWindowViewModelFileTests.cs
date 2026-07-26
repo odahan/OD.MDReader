@@ -236,6 +236,7 @@ public sealed class MainWindowViewModelFileTests
         Assert.Contains("<h1 id=\"export\">Export</h1>", html);
         Assert.Contains("<title>source</title>", html);
         Assert.Contains("<base href=", html);
+        Assert.Contains(HtmlTemplates.InternalAnchorScript, html);
         Assert.DoesNotContain(HtmlTemplates.ClickInterceptionScript, html);
         Assert.Equal(
             string.Format(AppText.ExportedStatusFormat, exportPath),

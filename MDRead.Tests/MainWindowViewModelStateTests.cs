@@ -123,6 +123,7 @@ public sealed class MainWindowViewModelStateTests
         viewModel.InitializePreview();
 
         Assert.Contains("<h1 id=\"hello\">Hello</h1>", viewModel.PreviewHtml);
+        Assert.Contains(HtmlTemplates.InternalAnchorScript, viewModel.PreviewHtml);
         Assert.Contains(HtmlTemplates.ClickInterceptionScript, viewModel.PreviewHtml);
         Assert.Contains("<html lang=\"en\">", viewModel.PreviewHtml);
     }

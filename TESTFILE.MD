@@ -1,4 +1,4 @@
-# MDRead 1.4.0 — Complete Markdown Test File
+# MDRead 1.4.1 — Complete Markdown Test File
 
 This document demonstrates the Markdown features supported by MDRead through
 Markdig. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod
@@ -126,7 +126,7 @@ Automatic links:
 
 ## Image
 
-![MDRead 1.4.0 placeholder](https://placehold.co/800x240/1e1e1e/e8e8e8.png?text=MDRead+1.4.0 "Remote placeholder image")
+![MDRead 1.4.1 placeholder](https://placehold.co/800x240/1e1e1e/e8e8e8.png?text=MDRead+1.4.1 "Remote placeholder image")
 
 *Lorem ipsum image caption written as an ordinary emphasized paragraph.*
 
@@ -219,4 +219,4 @@ incididunt ut labore et dolore magna aliqua.
 
 ***
 
-End of the MDRead 1.4.0 Markdown test file.
+End of the MDRead 1.4.1 Markdown test file.
