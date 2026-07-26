@@ -36,7 +36,15 @@ If you do not already use another Markdown reader or editor, associating `.md` f
 
 ## Supported Markdown
 
-MDRead supports headings, paragraphs, bold and italic text, links, images, unordered lists, quotes, inline code, fenced code blocks, horizontal rules, and Markdown tables with column alignment.
+MDRead uses Markdig for CommonMark-compatible Markdown processing. It supports
+headings, paragraphs, emphasis, links, images, lists, quotes, inline and fenced
+code, horizontal rules, pipe and grid tables, task lists, automatic links,
+definition lists, footnotes, heading identifiers, strikethrough, and other
+extended emphasis. Raw HTML is escaped for safety, except for the `<u>` tag
+inserted by the editor toolbar.
+
+Open [TESTFILE.MD](TESTFILE.MD) in MDRead for a comprehensive, ready-to-use
+demonstration of the supported syntax and rendering.
 
 ## License
 

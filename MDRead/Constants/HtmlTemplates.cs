@@ -5,72 +5,6 @@ namespace MDRead.Constants;
 /// </summary>
 internal static class HtmlTemplates
 {
-    /// <summary>Gets the opening paragraph tag.</summary>
-    public const string ParagraphOpen = "<p>";
-
-    /// <summary>Gets the closing paragraph tag.</summary>
-    public const string ParagraphClose = "</p>";
-
-    /// <summary>Gets the opening code-block tags.</summary>
-    public const string CodeBlockOpen = "<pre><code>";
-
-    /// <summary>Gets the closing code-block tags.</summary>
-    public const string CodeBlockClose = "</code></pre>";
-
-    /// <summary>Gets the unordered-list tag name.</summary>
-    public const string UnorderedListTag = "ul";
-
-    /// <summary>Gets the ordered-list tag name.</summary>
-    public const string OrderedListTag = "ol";
-
-    /// <summary>Gets the blockquote prefix recognized by the converter.</summary>
-    public const string BlockquotePrefix = "> ";
-
-    /// <summary>Gets a Markdown horizontal rule made from hyphens.</summary>
-    public const string HyphenHorizontalRule = "---";
-
-    /// <summary>Gets a Markdown horizontal rule made from asterisks.</summary>
-    public const string AsteriskHorizontalRule = "***";
-
-    /// <summary>Gets the HTML horizontal-rule tag.</summary>
-    public const string HorizontalRule = "<hr>";
-
-    /// <summary>Gets the heading-element format.</summary>
-    public const string HeadingFormat = "<h{0}>{1}</h{0}>";
-
-    /// <summary>Gets the generic opening-tag format.</summary>
-    public const string OpeningTagFormat = "<{0}>";
-
-    /// <summary>Gets the generic closing-tag format.</summary>
-    public const string ClosingTagFormat = "</{0}>";
-
-    /// <summary>Gets the list-item format.</summary>
-    public const string ListItemFormat = "<li>{0}</li>";
-
-    /// <summary>Gets the blockquote format.</summary>
-    public const string BlockquoteFormat = "<blockquote><p>{0}</p></blockquote>";
-
-    /// <summary>Gets the regular-expression replacement for an image.</summary>
-    public const string ImageReplacement = "<img src=\"$2\" alt=\"$1\">";
-
-    /// <summary>Gets the regular-expression replacement for a link.</summary>
-    public const string LinkReplacement = "<a href=\"$2\">$1</a>";
-
-    /// <summary>Gets the regular-expression replacement for inline code.</summary>
-    public const string InlineCodeReplacement = "<code>$1</code>";
-
-    /// <summary>Gets the regular-expression replacement for bold text.</summary>
-    public const string BoldReplacement = "<strong>$1$2</strong>";
-
-    /// <summary>Gets the regular-expression replacement for strikethrough text.</summary>
-    public const string StrikethroughReplacement = "<del>$1</del>";
-
-    /// <summary>Gets the regular-expression replacement for an underline tag.</summary>
-    public const string UnderlineReplacement = "<$1>";
-
-    /// <summary>Gets the regular-expression replacement for emphasized text.</summary>
-    public const string EmphasisReplacement = "<em>$1$2</em>";
-
     /// <summary>Gets the empty HTML base tag.</summary>
     public const string BaseTagFormat = "<base href=\"{0}\">";
 
@@ -93,6 +27,9 @@ internal static class HtmlTemplates
         "blockquote{margin-left:0;padding-left:16px;border-left:4px solid}" +
         "table{border-collapse:collapse;max-width:100%}" +
         "th,td{padding:8px 12px;border:1px solid}th{text-align:left}" +
+        ".task-list-item{list-style:none}" +
+        ".task-list-item input{margin:0 7px 0 -20px}" +
+        ".footnotes{margin-top:32px;font-size:.9em}" +
         "img{max-width:100%}";
 
     /// <summary>Gets the dark preview-theme styles.</summary>

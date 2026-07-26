@@ -122,7 +122,7 @@ public sealed class MainWindowViewModelStateTests
 
         viewModel.InitializePreview();
 
-        Assert.Contains("<h1>Hello</h1>", viewModel.PreviewHtml);
+        Assert.Contains("<h1 id=\"hello\">Hello</h1>", viewModel.PreviewHtml);
         Assert.Contains(HtmlTemplates.ClickInterceptionScript, viewModel.PreviewHtml);
         Assert.Contains("<html lang=\"en\">", viewModel.PreviewHtml);
     }
@@ -167,6 +167,7 @@ public sealed class MainWindowViewModelStateTests
         var message = Assert.Single(context.Dialogs.Messages);
         Assert.Equal(AppText.AboutMessage, message.Message);
         Assert.Equal(AppText.AboutTitle, message.Title);
+        Assert.Contains("Markdig", message.Message);
     }
 
     [Fact]

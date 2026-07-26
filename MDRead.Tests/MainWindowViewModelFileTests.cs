@@ -233,7 +233,7 @@ public sealed class MainWindowViewModelFileTests
         viewModel.ExportHtmlCommand.Execute(null);
 
         var html = File.ReadAllText(exportPath);
-        Assert.Contains("<h1>Export</h1>", html);
+        Assert.Contains("<h1 id=\"export\">Export</h1>", html);
         Assert.Contains("<title>source</title>", html);
         Assert.Contains("<base href=", html);
         Assert.DoesNotContain(HtmlTemplates.ClickInterceptionScript, html);

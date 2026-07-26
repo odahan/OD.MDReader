@@ -8,11 +8,13 @@ namespace MDRead.Tests;
 public sealed class MarkdownConverterTests
 {
     [Fact]
-    public void ToHtml_EncodesUnsafeTextAndCombinesParagraphLines()
+    public void ToHtml_EncodesUnsafeTextAndPreservesParagraphLines()
     {
         var html = MarkdownConverter.ToHtml("Hello <world>\r\ncontinued");
 
-        Assert.Equal("<p>Hello &lt;world&gt; continued</p>\r\n", html);
+        Assert.Contains("Hello &lt;world&gt;", html);
+        Assert.Contains("continued", html);
+        Assert.DoesNotContain("<world>", html);
     }
 
     [Fact]
@@ -20,20 +22,24 @@ public sealed class MarkdownConverterTests
     {
         var html = MarkdownConverter.ToHtml("# Title\n\n### Section\n---\n***");
 
-        Assert.Equal(
-            "<h1>Title</h1>\r\n<h3>Section</h3>\r\n<hr>\r\n<hr>\r\n",
-            html);
+        Assert.Contains("<h1 id=\"title\">Title</h1>", html);
+        Assert.Contains("<h3 id=\"section\">Section</h3>", html);
+        Assert.Equal(2, CountOccurrences(html, "<hr />"));
     }
 
     [Fact]
     public void ToHtml_ConvertsAndClosesBothListTypes()
     {
-        var html = MarkdownConverter.ToHtml("- One\n* Two\n\n1. First\n2. Second");
+        var html = MarkdownConverter.ToHtml("- One\n- Two\n\n1. First\n2. Second");
 
-        Assert.Equal(
-            "<ul>\r\n<li>One</li>\r\n<li>Two</li>\r\n</ul>\r\n" +
-            "<ol>\r\n<li>First</li>\r\n<li>Second</li>\r\n</ol>\r\n",
-            html);
+        Assert.Contains("<ul>", html);
+        Assert.Contains("<li>One</li>", html);
+        Assert.Contains("<li>Two</li>", html);
+        Assert.Contains("</ul>", html);
+        Assert.Contains("<ol>", html);
+        Assert.Contains("<li>First</li>", html);
+        Assert.Contains("<li>Second</li>", html);
+        Assert.Contains("</ol>", html);
     }
 
     [Fact]
@@ -42,10 +48,11 @@ public sealed class MarkdownConverterTests
         var html = MarkdownConverter.ToHtml(
             "> Quoted **text**\n```\n<tag>\n```");
 
-        Assert.Equal(
-            "<blockquote><p>Quoted <strong>text</strong></p></blockquote>\r\n" +
-            "<pre><code>\r\n&lt;tag&gt;\r\n</code></pre>\r\n",
-            html);
+        Assert.Contains("<blockquote>", html);
+        Assert.Contains("Quoted <strong>text</strong>", html);
+        Assert.Contains("</blockquote>", html);
+        Assert.Contains("<pre><code>&lt;tag&gt;", html);
+        Assert.Contains("</code></pre>", html);
     }
 
     [Fact]
@@ -53,9 +60,8 @@ public sealed class MarkdownConverterTests
     {
         var html = MarkdownConverter.ToHtml("```\nvalue");
 
-        Assert.Equal(
-            "<pre><code>\r\nvalue\r\n</code></pre>\r\n",
-            html);
+        Assert.Contains("<pre><code>value", html);
+        Assert.Contains("</code></pre>", html);
     }
 
     [Fact]
@@ -65,12 +71,13 @@ public sealed class MarkdownConverterTests
             "**bold** *italic* `code` ~~old~~ <u>under</u> " +
             "[site](https://example.com) ![logo](logo.png)");
 
-        Assert.Equal(
-            "<p><strong>bold</strong> <em>italic</em> <code>code</code> " +
-            "<del>old</del> <u>under</u> " +
-            "<a href=\"https://example.com\">site</a> " +
-            "<img src=\"logo.png\" alt=\"logo\"></p>\r\n",
-            html);
+        Assert.Contains("<strong>bold</strong>", html);
+        Assert.Contains("<em>italic</em>", html);
+        Assert.Contains("<code>code</code>", html);
+        Assert.Contains("<del>old</del>", html);
+        Assert.Contains("<u>under</u>", html);
+        Assert.Contains("<a href=\"https://example.com\">site</a>", html);
+        Assert.Contains("<img src=\"logo.png\" alt=\"logo\" />", html);
     }
 
     [Fact]
@@ -78,9 +85,8 @@ public sealed class MarkdownConverterTests
     {
         var html = MarkdownConverter.ToHtml("__bold__ _italic_");
 
-        Assert.Equal(
-            "<p><strong>bold</strong> <em>italic</em></p>\r\n",
-            html);
+        Assert.Contains("<strong>bold</strong>", html);
+        Assert.Contains("<em>italic</em>", html);
     }
 
     [Fact]
@@ -92,20 +98,44 @@ public sealed class MarkdownConverterTests
             "| Adéquation audience | 5 | 20 % | 20 |\n" +
             "| Démontrabilité | 1,5 | 10 % | 3 |");
 
-        Assert.Equal(
-            "<table>\r\n<thead>\r\n" +
-            "<tr><th>Crit&#232;re</th><th style=\"text-align: right\">Note /5</th>" +
-            "<th style=\"text-align: center\">Poids</th>" +
-            "<th style=\"text-align: right\">Contribution</th></tr>\r\n" +
-            "</thead>\r\n<tbody>\r\n" +
-            "<tr><td>Ad&#233;quation audience</td><td style=\"text-align: right\">5</td>" +
-            "<td style=\"text-align: center\">20 %</td>" +
-            "<td style=\"text-align: right\">20</td></tr>\r\n" +
-            "<tr><td>D&#233;montrabilit&#233;</td><td style=\"text-align: right\">1,5</td>" +
-            "<td style=\"text-align: center\">10 %</td>" +
-            "<td style=\"text-align: right\">3</td></tr>\r\n" +
-            "</tbody>\r\n</table>\r\n",
-            html);
+        Assert.Contains("<table>", html);
+        Assert.Contains("<th>Critère</th>", html);
+        Assert.Contains("<th style=\"text-align: right;\">Note /5</th>", html);
+        Assert.Contains("<th style=\"text-align: center;\">Poids</th>", html);
+        Assert.Contains("<td>Adéquation audience</td>", html);
+        Assert.Contains("<td style=\"text-align: right;\">1,5</td>", html);
+        Assert.Contains("<td style=\"text-align: center;\">10 %</td>", html);
+        Assert.Contains("</table>", html);
+    }
+
+    [Fact]
+    public void ToHtml_ConvertsGridTables()
+    {
+        var html = MarkdownConverter.ToHtml(
+            "+----------------------+------------------------------------------+\n" +
+            "| Item                 | Description                              |\n" +
+            "+======================+==========================================+\n" +
+            "| Lorem ipsum          | Dolor sit amet, consectetur adipiscing.  |\n" +
+            "+----------------------+------------------------------------------+");
+
+        Assert.Contains("<table>", html);
+        Assert.Contains("<th>Item</th>", html);
+        Assert.Contains("<th>Description</th>", html);
+        Assert.Contains("<td>Lorem ipsum</td>", html);
+        Assert.Contains("<td>Dolor sit amet, consectetur adipiscing.</td>", html);
+    }
+
+    [Fact]
+    public void ToHtml_ConvertsExtendedEmphasis()
+    {
+        var html = MarkdownConverter.ToHtml(
+            "~~old~~ ~sub~ ^sup^ ++inserted++ ==marked==");
+
+        Assert.Contains("<del>old</del>", html);
+        Assert.Contains("<sub>sub</sub>", html);
+        Assert.Contains("<sup>sup</sup>", html);
+        Assert.Contains("<ins>inserted</ins>", html);
+        Assert.Contains("<mark>marked</mark>", html);
     }
 
     [Fact]
@@ -117,13 +147,10 @@ public sealed class MarkdownConverterTests
             "| A\\|B | `x|y` |\n" +
             "| Empty |");
 
-        Assert.Equal(
-            "<table>\r\n<thead>\r\n<tr><th>Name</th><th>Description</th></tr>\r\n" +
-            "</thead>\r\n<tbody>\r\n" +
-            "<tr><td>A|B</td><td><code>x|y</code></td></tr>\r\n" +
-            "<tr><td>Empty</td><td></td></tr>\r\n" +
-            "</tbody>\r\n</table>\r\n",
-            html);
+        Assert.Contains("<td>A|B</td>", html);
+        Assert.Contains("<td><code>x|y</code></td>", html);
+        Assert.Contains("<td>Empty</td>", html);
+        Assert.Contains("<td></td>", html);
     }
 
     [Fact]
@@ -131,6 +158,81 @@ public sealed class MarkdownConverterTests
     {
         var html = MarkdownConverter.ToHtml("| Not | a table |");
 
-        Assert.Equal("<p>| Not | a table |</p>\r\n", html);
+        Assert.Contains("<p>| Not | a table |</p>", html);
+        Assert.DoesNotContain("<table>", html);
+    }
+
+    [Fact]
+    public void ToHtml_EscapesRawHtmlButAllowsToolbarUnderline()
+    {
+        var html = MarkdownConverter.ToHtml(
+            "<script>alert('x')</script> <img src=x onerror=alert(1)> " +
+            "<u>safe</u> [unsafe](javascript:alert('x'))");
+
+        Assert.DoesNotContain("<script>", html);
+        Assert.DoesNotContain("<img src=x", html);
+        Assert.DoesNotContain("href=\"javascript:", html);
+        Assert.Contains("&lt;script&gt;", html);
+        Assert.Contains("&lt;img src=x onerror=alert(1)&gt;", html);
+        Assert.Contains("<u>safe</u>", html);
+    }
+
+    [Fact]
+    public void ToHtml_DoesNotInterpretMarkdownOrUnderlineInsideCode()
+    {
+        var html = MarkdownConverter.ToHtml("`*literal* <u>code</u>`");
+
+        Assert.Contains(
+            "<code>*literal* &lt;u&gt;code&lt;/u&gt;</code>",
+            html);
+        Assert.DoesNotContain("<em>literal</em>", html);
+    }
+
+    [Fact]
+    public void ToHtml_PreservesRelativeMarkdownLinks()
+    {
+        var html = MarkdownConverter.ToHtml(
+            "[Next chapter](chapters/next.md#summary)");
+
+        Assert.Contains(
+            "<a href=\"chapters/next.md#summary\">Next chapter</a>",
+            html);
+    }
+
+    [Fact]
+    public void ToHtml_ConvertsSelectedMarkdigExtensions()
+    {
+        var html = MarkdownConverter.ToHtml(
+            "- [x] Done\n\n" +
+            "Visit https://example.com.\n\n" +
+            "Term\n:   Definition\n\n" +
+            "Text with a note.[^1]\n\n" +
+            "[^1]: Footnote");
+
+        Assert.Contains("type=\"checkbox\"", html);
+        Assert.Contains("checked=\"checked\"", html);
+        Assert.Contains("<a href=\"https://example.com\">https://example.com</a>", html);
+        Assert.Contains("<dl>", html);
+        Assert.Contains("<dt>Term</dt>", html);
+        Assert.Contains("<dd>Definition</dd>", html);
+        Assert.Contains("class=\"footnotes\"", html);
+        Assert.Contains("Footnote", html);
+    }
+
+    private static int CountOccurrences(string value, string expected)
+    {
+        var count = 0;
+        var startIndex = 0;
+
+        while ((startIndex = value.IndexOf(
+                   expected,
+                   startIndex,
+                   StringComparison.Ordinal)) >= 0)
+        {
+            count++;
+            startIndex += expected.Length;
+        }
+
+        return count;
     }
 }

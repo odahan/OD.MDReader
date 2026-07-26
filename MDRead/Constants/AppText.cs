@@ -103,7 +103,9 @@ internal static class AppText
     /// <summary>Gets the About dialog content format.</summary>
     public const string AboutMessageFormat =
         "MDRead {0}\nMarkdown reader, editor and standalone HTML exporter.\n\n" +
-        "Freeware — Olivier Dahan © 2026";
+        "Freeware — Olivier Dahan © 2026\n\n" +
+        "Markdown processing by Markdig 1.3.2 © Alexandre Mutel\n" +
+        "Licensed under the BSD 2-Clause License.";
 
     /// <summary>Gets the About dialog content.</summary>
     public static string AboutMessage =>
