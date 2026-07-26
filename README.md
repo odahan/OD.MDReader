@@ -6,6 +6,7 @@ MDRead is a Windows desktop application for reading and editing Markdown files a
 
 - Reads, edits, and creates Markdown files.
 - Opens `.md` and `.markdown` files and displays them as a clean HTML page.
+- Opens Markdown files dropped from File Explorer or compatible applications.
 - Uses a dark theme by default; a light theme can be selected at any time.
 - Supports command-line opening: `MDRead --Dark path\\to\\document.md`.
 - Provides an **Edit mode** with Markdown source on top and a live HTML preview below.
@@ -35,7 +36,7 @@ If you do not already use another Markdown reader or editor, associating `.md` f
 
 ## Supported Markdown
 
-MDRead supports headings, paragraphs, bold and italic text, links, images, unordered lists, quotes, inline code, fenced code blocks, and horizontal rules.
+MDRead supports headings, paragraphs, bold and italic text, links, images, unordered lists, quotes, inline code, fenced code blocks, horizontal rules, and Markdown tables with column alignment.
 
 ## License
 

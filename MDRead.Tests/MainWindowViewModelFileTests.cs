@@ -36,6 +36,36 @@ public sealed class MainWindowViewModelFileTests
     }
 
     [Fact]
+    public void OpenDroppedFile_LoadsMarkdownDocument()
+    {
+        using var temporaryDirectory = new TemporaryDirectory();
+        var documentPath = temporaryDirectory.GetPath("dropped.markdown");
+        File.WriteAllText(documentPath, "# Dropped");
+        var context = new ViewModelTestContext();
+        var viewModel = context.CreateViewModel();
+
+        viewModel.OpenDroppedFile(documentPath);
+
+        Assert.Equal("# Dropped", viewModel.MarkdownText);
+        Assert.Equal(Path.GetFullPath(documentPath), viewModel.StatusText);
+    }
+
+    [Fact]
+    public void OpenDroppedFile_IgnoresUnsupportedFiles()
+    {
+        using var temporaryDirectory = new TemporaryDirectory();
+        var documentPath = temporaryDirectory.GetPath("dropped.txt");
+        File.WriteAllText(documentPath, "Not Markdown");
+        var context = new ViewModelTestContext();
+        var viewModel = context.CreateViewModel();
+
+        viewModel.OpenDroppedFile(documentPath);
+
+        Assert.Equal(string.Empty, viewModel.MarkdownText);
+        Assert.Empty(context.Settings.Settings.RecentFiles);
+    }
+
+    [Fact]
     public void InitializePreview_OpensStartupDocument()
     {
         using var temporaryDirectory = new TemporaryDirectory();

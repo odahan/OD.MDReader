@@ -10,7 +10,7 @@ namespace MDRead.Tests;
 public sealed class MainWindowViewModelStateTests
 {
     [Fact]
-    public void Constructor_UsesSettingsAndDefaultPresentationValues()
+    public void Constructor_AlwaysStartsInReadMode()
     {
         var context = new ViewModelTestContext
         {
@@ -19,7 +19,6 @@ public sealed class MainWindowViewModelStateTests
                 Settings = new UserSettings
                 {
                     IsDark = false,
-                    EditMode = true,
                     EditorHeight = 245
                 }
             }
@@ -28,11 +27,11 @@ public sealed class MainWindowViewModelStateTests
         var viewModel = context.CreateViewModel();
 
         Assert.False(viewModel.IsDarkTheme);
-        Assert.True(viewModel.IsEditMode);
+        Assert.False(viewModel.IsEditMode);
         Assert.Equal(245, viewModel.EditorHeight);
         Assert.Equal(AppText.UntitledWindowTitle, viewModel.WindowTitle);
         Assert.Equal(AppText.ReadyStatus, viewModel.StatusText);
-        Assert.False(viewModel.ExitPreviewCommand.CanExecute(null));
+        Assert.True(viewModel.ExitPreviewCommand.CanExecute(null));
     }
 
     [Theory]
@@ -80,7 +79,7 @@ public sealed class MainWindowViewModelStateTests
     }
 
     [Fact]
-    public void EditMode_PersistsFocusesAndUpdatesEscapeCommand()
+    public void EditMode_FocusesAndUpdatesEscapeCommandWithoutPersisting()
     {
         var context = new ViewModelTestContext();
         var viewModel = context.CreateViewModel();
@@ -88,8 +87,7 @@ public sealed class MainWindowViewModelStateTests
 
         viewModel.IsEditMode = true;
 
-        Assert.True(context.Settings.Settings.EditMode);
-        Assert.Equal(1, context.Settings.SaveCount);
+        Assert.Equal(0, context.Settings.SaveCount);
         Assert.Equal(1, context.Editor.FocusRequestCount);
         Assert.False(viewModel.ExitPreviewCommand.CanExecute(null));
     }

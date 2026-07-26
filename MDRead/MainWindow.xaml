@@ -9,6 +9,9 @@
         MinHeight="{x:Static constants:UiLayoutConstants.MinimumWindowHeight}"
         MinWidth="{x:Static constants:UiLayoutConstants.MinimumWindowWidth}"
         WindowStartupLocation="CenterScreen"
+        AllowDrop="True"
+        PreviewDragOver="Window_PreviewDragOver"
+        PreviewDrop="Window_PreviewDrop"
         Closing="Window_Closing">
     <Window.InputBindings>
         <KeyBinding Key="N"
@@ -212,7 +215,9 @@
                           DragCompleted="EditorSplitter_DragCompleted" />
 
             <Border Grid.Row="2">
-                <wv2:WebView2 x:Name="PreviewBrowser" />
+                <wv2:WebView2 x:Name="PreviewBrowser"
+                              AllowDrop="True"
+                              AllowExternalDrop="True" />
             </Border>
         </Grid>
     </DockPanel>

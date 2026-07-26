@@ -43,7 +43,15 @@ internal sealed class JsonSettingsService : ISettingsService
         try
         {
             var json = File.ReadAllText(_settingsPath);
-            return JsonSerializer.Deserialize<UserSettings>(json) ?? new UserSettings();
+            var settings = JsonSerializer.Deserialize<UserSettings>(json)
+                ?? new UserSettings();
+
+            if (ContainsLegacyEditModePreference(json))
+            {
+                Save(settings);
+            }
+
+            return settings;
         }
         catch (IOException)
         {
@@ -76,5 +84,17 @@ internal sealed class JsonSettingsService : ISettingsService
         {
             // Settings persistence must never interrupt the editing workflow.
         }
+    }
+
+    /// <summary>
+    /// Determines whether a settings file still contains the retired Edit mode preference.
+    /// </summary>
+    /// <param name="json">The settings document to inspect.</param>
+    /// <returns><see langword="true"/> when the retired preference is present.</returns>
+    private static bool ContainsLegacyEditModePreference(string json)
+    {
+        using var document = JsonDocument.Parse(json);
+        return document.RootElement.ValueKind == JsonValueKind.Object
+            && document.RootElement.TryGetProperty("EditMode", out _);
     }
 }

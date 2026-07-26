@@ -18,7 +18,6 @@ public sealed class JsonSettingsServiceTests
         var settings = service.Load();
 
         Assert.True(settings.IsDark);
-        Assert.False(settings.EditMode);
         Assert.Empty(settings.RecentFiles);
     }
 
@@ -47,8 +46,7 @@ public sealed class JsonSettingsServiceTests
             LastDirectory = temporaryDirectory.Path,
             RecentFiles = ["one.md", "two.md"],
             EditorHeight = 280,
-            IsDark = false,
-            EditMode = true
+            IsDark = false
         };
 
         service.Save(expected);
@@ -58,25 +56,24 @@ public sealed class JsonSettingsServiceTests
         Assert.Equal(expected.RecentFiles, actual.RecentFiles);
         Assert.Equal(expected.EditorHeight, actual.EditorHeight);
         Assert.Equal(expected.IsDark, actual.IsDark);
-        Assert.Equal(expected.EditMode, actual.EditMode);
     }
 
     [Fact]
-    public void Save_PreservesVersion120JsonPropertyNames()
+    public void Load_RemovesLegacyEditModePreference()
     {
         using var temporaryDirectory = new TemporaryDirectory();
         var settingsPath = temporaryDirectory.GetPath("settings.json");
+        File.WriteAllText(
+            settingsPath,
+            "{\"IsDark\":false,\"EditMode\":true}");
         var service = new JsonSettingsService(settingsPath);
 
-        service.Save(new UserSettings
-        {
-            IsDark = false,
-            EditMode = true
-        });
+        var settings = service.Load();
 
         var json = File.ReadAllText(settingsPath);
+        Assert.False(settings.IsDark);
         Assert.Contains("\"IsDark\":false", json);
-        Assert.Contains("\"EditMode\":true", json);
+        Assert.DoesNotContain("\"EditMode\"", json);
         Assert.DoesNotContain("\"IsDarkTheme\"", json);
         Assert.DoesNotContain("\"IsEditMode\"", json);
     }

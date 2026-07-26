@@ -105,6 +105,10 @@ internal static class AppText
         "MDRead {0}\nMarkdown reader, editor and standalone HTML exporter.\n\n" +
         "Freeware — Olivier Dahan © 2026";
 
+    /// <summary>Gets the About dialog content.</summary>
+    public static string AboutMessage =>
+        string.Format(AboutMessageFormat, ApplicationConstants.Version);
+
     /// <summary>Gets the label of the confirmation button.</summary>
     public const string OkButton = "OK";
 

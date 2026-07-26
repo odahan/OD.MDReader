@@ -91,6 +91,8 @@ internal static class HtmlTemplates
         "code{font-family:Consolas,monospace;padding:2px 4px;border-radius:3px}" +
         "pre code{padding:0}" +
         "blockquote{margin-left:0;padding-left:16px;border-left:4px solid}" +
+        "table{border-collapse:collapse;max-width:100%}" +
+        "th,td{padding:8px 12px;border:1px solid}th{text-align:left}" +
         "img{max-width:100%}";
 
     /// <summary>Gets the dark preview-theme styles.</summary>
@@ -99,6 +101,7 @@ internal static class HtmlTemplates
         "a{color:#72b7ff}" +
         "pre,code{background:#2b2b2b}" +
         "blockquote{border-color:#777;color:#ccc}" +
+        "th,td{border-color:#555}th{background:#2b2b2b}" +
         "html,body{scrollbar-face-color:#525252;scrollbar-track-color:#1e1e1e;" +
         "scrollbar-arrow-color:#d8d8d8;scrollbar-shadow-color:#1e1e1e;" +
         "scrollbar-highlight-color:#525252;scrollbar-3dlight-color:#1e1e1e;" +
@@ -111,6 +114,7 @@ internal static class HtmlTemplates
         "a{color:#0645ad}" +
         "pre,code{background:#e9edf2}" +
         "blockquote{border-color:#8793a1;color:#374151}" +
+        "th,td{border-color:#cbd5e1}th{background:#f2f4f7}" +
         "html,body{scrollbar-face-color:#a7b1bd;scrollbar-track-color:#f2f4f7;" +
         "scrollbar-arrow-color:#253143;scrollbar-shadow-color:#f2f4f7;" +
         "scrollbar-highlight-color:#c5cdd6;scrollbar-3dlight-color:#f2f4f7;" +

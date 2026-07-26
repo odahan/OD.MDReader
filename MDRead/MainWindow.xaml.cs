@@ -195,6 +195,13 @@ public partial class MainWindow : Window, IEditorTextOperations
         object? sender,
         CoreWebView2NavigationStartingEventArgs eventArgs)
     {
+        if (TryGetMarkdownPathFromWebTarget(eventArgs.Uri, out var markdownPath))
+        {
+            eventArgs.Cancel = true;
+            Dispatcher.BeginInvoke(() => ViewModel.OpenDroppedFile(markdownPath));
+            return;
+        }
+
         // NavigateToString is the only navigation initiated by the application itself.
         if (_isInternalNavigation)
         {
@@ -210,7 +217,16 @@ public partial class MainWindow : Window, IEditorTextOperations
         CoreWebView2NewWindowRequestedEventArgs eventArgs)
     {
         eventArgs.Handled = true;
-        Dispatcher.BeginInvoke(() => ViewModel.OpenPreviewTarget(eventArgs.Uri));
+        Dispatcher.BeginInvoke(() =>
+        {
+            if (TryGetMarkdownPathFromWebTarget(eventArgs.Uri, out var markdownPath))
+            {
+                ViewModel.OpenDroppedFile(markdownPath);
+                return;
+            }
+
+            ViewModel.OpenPreviewTarget(eventArgs.Uri);
+        });
     }
 
     private void Preview_WebMessageReceived(
@@ -233,6 +249,24 @@ public partial class MainWindow : Window, IEditorTextOperations
 
     private void ViewModel_CloseRequested(object? sender, EventArgs eventArgs) => Close();
 
+    private void Window_PreviewDragOver(object sender, DragEventArgs eventArgs)
+    {
+        eventArgs.Effects = TryGetDroppedMarkdownPath(eventArgs.Data, out _)
+            ? DragDropEffects.Copy
+            : DragDropEffects.None;
+        eventArgs.Handled = true;
+    }
+
+    private void Window_PreviewDrop(object sender, DragEventArgs eventArgs)
+    {
+        if (TryGetDroppedMarkdownPath(eventArgs.Data, out var path))
+        {
+            ViewModel.OpenDroppedFile(path);
+        }
+
+        eventArgs.Handled = true;
+    }
+
     private void Window_Closing(object? sender, CancelEventArgs eventArgs)
     {
         if (_viewModel is not null && !_viewModel.CanClose())
@@ -247,5 +281,52 @@ public partial class MainWindow : Window, IEditorTextOperations
         {
             ViewModel.SaveEditorHeight(EditorPanel.ActualHeight);
         }
+    }
+
+    /// <summary>
+    /// Gets the first supported Markdown file supplied through the standard shell file-drop format.
+    /// </summary>
+    /// <param name="data">The data supplied by the drag-and-drop source.</param>
+    /// <param name="path">The selected Markdown path, when available.</param>
+    /// <returns><see langword="true"/> when a supported Markdown file was dropped.</returns>
+    private static bool TryGetDroppedMarkdownPath(IDataObject data, out string path)
+    {
+        path = string.Empty;
+        if (!data.GetDataPresent(DataFormats.FileDrop) ||
+            data.GetData(DataFormats.FileDrop) is not string[] paths)
+        {
+            return false;
+        }
+
+        var markdownPath = paths.FirstOrDefault(DocumentConstants.IsMarkdownFilePath);
+        if (markdownPath is null)
+        {
+            return false;
+        }
+
+        path = markdownPath;
+        return true;
+    }
+
+    /// <summary>
+    /// Resolves a Markdown file URI produced by WebView2's native drop handling.
+    /// </summary>
+    /// <param name="target">The WebView2 navigation target.</param>
+    /// <param name="path">The local Markdown path, when available.</param>
+    /// <returns><see langword="true"/> when the target is a local Markdown file.</returns>
+    private static bool TryGetMarkdownPathFromWebTarget(
+        string target,
+        out string path)
+    {
+        path = string.Empty;
+        if (!Uri.TryCreate(target, UriKind.Absolute, out var uri) ||
+            !uri.IsFile ||
+            !DocumentConstants.IsMarkdownFilePath(uri.LocalPath))
+        {
+            return false;
+        }
+
+        path = uri.LocalPath;
+        return true;
     }
 }

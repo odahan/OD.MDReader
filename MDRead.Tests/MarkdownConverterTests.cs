@@ -82,4 +82,55 @@ public sealed class MarkdownConverterTests
             "<p><strong>bold</strong> <em>italic</em></p>\r\n",
             html);
     }
+
+    [Fact]
+    public void ToHtml_ConvertsTablesWithColumnAlignment()
+    {
+        var html = MarkdownConverter.ToHtml(
+            "| Critère | Note /5 | Poids | Contribution |\n" +
+            "|---|---:|:---:|---:|\n" +
+            "| Adéquation audience | 5 | 20 % | 20 |\n" +
+            "| Démontrabilité | 1,5 | 10 % | 3 |");
+
+        Assert.Equal(
+            "<table>\r\n<thead>\r\n" +
+            "<tr><th>Crit&#232;re</th><th style=\"text-align: right\">Note /5</th>" +
+            "<th style=\"text-align: center\">Poids</th>" +
+            "<th style=\"text-align: right\">Contribution</th></tr>\r\n" +
+            "</thead>\r\n<tbody>\r\n" +
+            "<tr><td>Ad&#233;quation audience</td><td style=\"text-align: right\">5</td>" +
+            "<td style=\"text-align: center\">20 %</td>" +
+            "<td style=\"text-align: right\">20</td></tr>\r\n" +
+            "<tr><td>D&#233;montrabilit&#233;</td><td style=\"text-align: right\">1,5</td>" +
+            "<td style=\"text-align: center\">10 %</td>" +
+            "<td style=\"text-align: right\">3</td></tr>\r\n" +
+            "</tbody>\r\n</table>\r\n",
+            html);
+    }
+
+    [Fact]
+    public void ToHtml_HandlesEscapedPipesAndMissingTableCells()
+    {
+        var html = MarkdownConverter.ToHtml(
+            "| Name | Description |\n" +
+            "| --- | --- |\n" +
+            "| A\\|B | `x|y` |\n" +
+            "| Empty |");
+
+        Assert.Equal(
+            "<table>\r\n<thead>\r\n<tr><th>Name</th><th>Description</th></tr>\r\n" +
+            "</thead>\r\n<tbody>\r\n" +
+            "<tr><td>A|B</td><td><code>x|y</code></td></tr>\r\n" +
+            "<tr><td>Empty</td><td></td></tr>\r\n" +
+            "</tbody>\r\n</table>\r\n",
+            html);
+    }
+
+    [Fact]
+    public void ToHtml_LeavesPipeTextAsParagraphWithoutTableDelimiter()
+    {
+        var html = MarkdownConverter.ToHtml("| Not | a table |");
+
+        Assert.Equal("<p>| Not | a table |</p>\r\n", html);
+    }
 }

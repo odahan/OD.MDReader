@@ -68,7 +68,6 @@ internal partial class MainWindowViewModel : ObservableObject
         _startupArguments = startupArguments.ToArray();
         _settings = settingsService.Load();
         _isDarkTheme = ResolveInitialTheme(_settings.IsDark, _startupArguments);
-        _isEditMode = _settings.EditMode;
         RefreshRecentFiles();
     }
 
@@ -142,6 +141,20 @@ internal partial class MainWindowViewModel : ObservableObject
         _settings.EditorHeight = height;
         SaveSettings();
         OnPropertyChanged(nameof(EditorHeight));
+    }
+
+    /// <summary>
+    /// Opens a Markdown document supplied by a drag-and-drop operation.
+    /// </summary>
+    /// <param name="path">The path supplied by the drop source.</param>
+    public void OpenDroppedFile(string path)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(path);
+
+        if (DocumentConstants.IsMarkdownFilePath(path))
+        {
+            OpenFile(path);
+        }
     }
 
     /// <summary>
@@ -277,7 +290,7 @@ internal partial class MainWindowViewModel : ObservableObject
     [RelayCommand]
     private void ShowAbout() =>
         _dialogService.ShowMessage(
-            string.Format(AppText.AboutMessageFormat, ApplicationConstants.Version),
+            AppText.AboutMessage,
             AppText.AboutTitle);
 
     [RelayCommand]
@@ -371,8 +384,6 @@ internal partial class MainWindowViewModel : ObservableObject
 
     partial void OnIsEditModeChanged(bool value)
     {
-        _settings.EditMode = value;
-        SaveSettings();
         ExitPreviewCommand.NotifyCanExecuteChanged();
 
         if (value)

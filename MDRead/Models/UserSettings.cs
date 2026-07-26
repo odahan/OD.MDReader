@@ -17,6 +17,4 @@ internal sealed class UserSettings
     /// <summary>Gets or sets whether the dark theme is enabled.</summary>
     public bool IsDark { get; set; } = true;
 
-    /// <summary>Gets or sets whether the editor pane is visible.</summary>
-    public bool EditMode { get; set; }
 }
