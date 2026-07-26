@@ -59,6 +59,26 @@ internal static class AppText
     public const string PreviewInitializationFailedFormat =
         "The preview engine (WebView2 runtime) could not start.\n\n{0}";
 
+    /// <summary>Gets the prompt displayed when the WebView2 runtime is unavailable.</summary>
+    public const string WebView2RuntimeMissing =
+        "WebView2 is required to display the preview, but it is not installed.\n\nWould you like to open the official Microsoft download page?";
+
+    /// <summary>Gets the error displayed when the WebView2 download page cannot be opened.</summary>
+    public const string WebView2DownloadPageFailedFormat =
+        "Could not open the official Microsoft WebView2 download page.\n\n{0}";
+
+    /// <summary>Gets the message shown when startup cannot complete.</summary>
+    public const string StartupFailedFormat =
+        "MDRead could not start and will close.\n\nDetails for support:\n{0}";
+
+    /// <summary>Gets the message shown when an unexpected application error occurs.</summary>
+    public const string UnexpectedErrorFormat =
+        "MDRead encountered an unexpected error and will close.\n\nDetails for support:\n{0}";
+
+    /// <summary>Gets the diagnostic details included in unexpected-error messages.</summary>
+    public const string ErrorDiagnosticFormat =
+        "Type: {0}\nCode: 0x{1:X8}\nMessage: {2}";
+
     /// <summary>Gets the save failure format.</summary>
     public const string SaveFailedFormat = "Could not save the file.\n\n{0}";
 
@@ -80,9 +100,9 @@ internal static class AppText
     /// <summary>Gets the About dialog title.</summary>
     public const string AboutTitle = "About MDRead";
 
-    /// <summary>Gets the About dialog content.</summary>
-    public const string AboutMessage =
-        "MDRead\nMarkdown reader, editor and standalone HTML exporter.\n\n" +
+    /// <summary>Gets the About dialog content format.</summary>
+    public const string AboutMessageFormat =
+        "MDRead {0}\nMarkdown reader, editor and standalone HTML exporter.\n\n" +
         "Freeware — Olivier Dahan © 2026";
 
     /// <summary>Gets the label of the confirmation button.</summary>

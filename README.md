@@ -4,6 +4,7 @@ MDRead is a Windows desktop application for reading and editing Markdown files a
 
 ## Features
 
+- Reads, edits, and creates Markdown files.
 - Opens `.md` and `.markdown` files and displays them as a clean HTML page.
 - Uses a dark theme by default; a light theme can be selected at any time.
 - Supports command-line opening: `MDRead --Dark path\\to\\document.md`.
@@ -13,13 +14,24 @@ MDRead is a Windows desktop application for reading and editing Markdown files a
 - Exports a standalone HTML5 document with all CSS embedded.
 - Closes with `Esc` when used in read-only mode.
 
+## Requirements
+
+MDRead requires the [Microsoft Edge WebView2 Runtime](https://developer.microsoft.com/microsoft-edge/webview2/consumer/) to display Markdown previews. It is preinstalled on Windows 11 and on most up-to-date Windows 10 devices. If it is missing, MDRead displays a prompt with a link to the official Microsoft installation page.
+
 ## Getting started
 
-Build the project with the .NET 8 SDK on Windows, then run `MDRead.exe`. Open a file from **File → Open** or pass its path on the command line.
+Build the project with the .NET 8 SDK on Windows, then run `MDRead.exe`.
+
+- Use **File → Open** to select an existing Markdown file.
+- Start MDRead with a file path to open it directly from a command line:
 
 ```text
-MDRead --Dark "C:\\Documents\\notes.md"
+MDRead.exe "C:\\Documents\\notes.md"
 ```
+
+- Use **File → New** to create a new Markdown document, then save it as a `.md` file.
+
+If you do not already use another Markdown reader or editor, associating `.md` files with MDRead in Windows makes opening them from File Explorer more convenient.
 
 ## Supported Markdown
 

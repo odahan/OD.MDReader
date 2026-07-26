@@ -19,6 +19,13 @@ internal static class ApplicationConstants
 
     /// <summary>Gets the prefix used by command-line options.</summary>
     public const string CommandLineOptionPrefix = "--";
+
+    /// <summary>Gets the version of the running application.</summary>
+    public static string Version => typeof(ApplicationConstants)
+        .Assembly
+        .GetName()
+        .Version?
+        .ToString(fieldCount: 3) ?? "Unknown";
 }
 
 /// <summary>
@@ -34,6 +41,18 @@ internal static class SettingsConstants
 
     /// <summary>Gets the settings file name.</summary>
     public const string FileName = "settings.json";
+}
+
+/// <summary>
+/// Provides values used by the WebView2 preview engine.
+/// </summary>
+internal static class WebView2Constants
+{
+    /// <summary>Gets the WebView2 user data folder name.</summary>
+    public const string UserDataFolderName = "WebView2";
+
+    /// <summary>Gets the official Microsoft download page for WebView2.</summary>
+    public const string DownloadUrl = "https://developer.microsoft.com/microsoft-edge/webview2/consumer/";
 }
 
 /// <summary>

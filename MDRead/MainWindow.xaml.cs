@@ -3,6 +3,7 @@ using MDRead.Services;
 using MDRead.ViewModels;
 using Microsoft.Web.WebView2.Core;
 using System.ComponentModel;
+using System.IO;
 using System.Windows;
 using System.Windows.Controls.Primitives;
 
@@ -97,7 +98,8 @@ public partial class MainWindow : Window, IEditorTextOperations
     {
         try
         {
-            await PreviewBrowser.EnsureCoreWebView2Async();
+            var environment = await CreateWebView2EnvironmentAsync();
+            await PreviewBrowser.EnsureCoreWebView2Async(environment);
         }
         catch (Exception exception)
         {
@@ -109,6 +111,20 @@ public partial class MainWindow : Window, IEditorTextOperations
         PreviewBrowser.CoreWebView2.NewWindowRequested += Preview_NewWindowRequested;
         PreviewBrowser.CoreWebView2.WebMessageReceived += Preview_WebMessageReceived;
         ViewModel.InitializePreview();
+    }
+
+    private static Task<CoreWebView2Environment> CreateWebView2EnvironmentAsync()
+    {
+        var userDataFolder = Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+            SettingsConstants.PublisherFolderName,
+            SettingsConstants.ApplicationFolderName,
+            WebView2Constants.UserDataFolderName);
+
+        Directory.CreateDirectory(userDataFolder);
+        return CoreWebView2Environment.CreateAsync(
+            browserExecutableFolder: null,
+            userDataFolder);
     }
 
     private void ViewModel_PropertyChanged(object? sender, PropertyChangedEventArgs eventArgs)

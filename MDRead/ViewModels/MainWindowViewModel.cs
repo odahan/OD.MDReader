@@ -276,7 +276,9 @@ internal partial class MainWindowViewModel : ObservableObject
 
     [RelayCommand]
     private void ShowAbout() =>
-        _dialogService.ShowMessage(AppText.AboutMessage, AppText.AboutTitle);
+        _dialogService.ShowMessage(
+            string.Format(AppText.AboutMessageFormat, ApplicationConstants.Version),
+            AppText.AboutTitle);
 
     [RelayCommand]
     private void ApplyHeading1() =>
