@@ -137,7 +137,7 @@ public sealed class MainWindowViewModelStateTests
 
         viewModel.MarkdownText = "First";
         viewModel.MarkdownText = "Second";
-        await Task.Delay(ApplicationConstants.PreviewRenderDelayMilliseconds + 150);
+        await Task.Delay(ApplicationConstants.PreviewRenderDelayMilliseconds + 150, TestContext.Current.CancellationToken);
 
         Assert.Contains("<p>Second</p>", viewModel.PreviewHtml);
         Assert.DoesNotContain("<p>First</p>", viewModel.PreviewHtml);
