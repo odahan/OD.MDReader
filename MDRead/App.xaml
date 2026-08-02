@@ -140,16 +140,17 @@
                    TargetType="ScrollBar">
                 <Setter Property="Background"
                         Value="{DynamicResource {x:Static constants:ThemeResourceKeys.ScrollTrack}}" />
-                <Setter Property="Width"
-                        Value="{x:Static constants:UiStyleConstants.ScrollBarSize}" />
-                <Setter Property="Height"
-                        Value="{x:Static constants:UiStyleConstants.ScrollBarSize}" />
                 <Setter Property="Template">
                     <Setter.Value>
                         <ControlTemplate TargetType="ScrollBar">
                             <Border Background="{TemplateBinding Background}">
-                                <Track Orientation="{TemplateBinding Orientation}"
-                                       IsDirectionReversed="True">
+                                <Track x:Name="PART_Track"
+                                       Orientation="{TemplateBinding Orientation}"
+                                       IsDirectionReversed="True"
+                                       Minimum="{TemplateBinding Minimum}"
+                                       Maximum="{TemplateBinding Maximum}"
+                                       Value="{Binding Value, RelativeSource={RelativeSource TemplatedParent}, Mode=TwoWay}"
+                                       ViewportSize="{TemplateBinding ViewportSize}">
                                     <Track.Thumb>
                                         <Thumb Background="{DynamicResource {x:Static constants:ThemeResourceKeys.ScrollThumb}}">
                                             <Thumb.Style>
@@ -175,9 +176,26 @@
                                     </Track.Thumb>
                                 </Track>
                             </Border>
+                            <ControlTemplate.Triggers>
+                                <Trigger Property="Orientation" Value="Horizontal">
+                                    <Setter TargetName="PART_Track"
+                                            Property="IsDirectionReversed"
+                                            Value="False" />
+                                </Trigger>
+                            </ControlTemplate.Triggers>
                         </ControlTemplate>
                     </Setter.Value>
                 </Setter>
+                <Style.Triggers>
+                    <Trigger Property="Orientation" Value="Vertical">
+                        <Setter Property="Width"
+                                Value="{x:Static constants:UiStyleConstants.ScrollBarSize}" />
+                    </Trigger>
+                    <Trigger Property="Orientation" Value="Horizontal">
+                        <Setter Property="Height"
+                                Value="{x:Static constants:UiStyleConstants.ScrollBarSize}" />
+                    </Trigger>
+                </Style.Triggers>
             </Style>
 
             <Style TargetType="ToolBarTray">
