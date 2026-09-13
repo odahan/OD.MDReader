@@ -1,9 +1,11 @@
 using MDRead.Constants;
+using MDRead.Markdown;
 using MDRead.Services;
 using MDRead.ViewModels;
 using Microsoft.Web.WebView2.Core;
 using System.ComponentModel;
 using System.IO;
+using System.Text.Json;
 using System.Windows;
 using System.Windows.Controls.Primitives;
 
@@ -91,6 +93,12 @@ public partial class MainWindow : Window, IEditorTextOperations
     /// <inheritdoc />
     public void FocusEditor() => MarkdownEditor.Focus();
 
+    /// <inheritdoc />
+    public void SynchronizeHtmlPreview() => _ = SynchronizeHtmlPreviewAsync();
+
+    /// <inheritdoc />
+    public void SynchronizeMarkdownEditor() => _ = SynchronizeMarkdownEditorAsync();
+
     private MainWindowViewModel ViewModel =>
         _viewModel ?? throw new InvalidOperationException(AppText.ViewModelNotAttached);
 
@@ -155,6 +163,95 @@ public partial class MainWindow : Window, IEditorTextOperations
         _isInternalNavigation = true;
         PreviewBrowser.NavigateToString(html);
     }
+
+    private async Task SynchronizeHtmlPreviewAsync()
+    {
+        var anchor = MarkdownTextSynchronizer.CreateAnchor(
+            MarkdownEditor.Text,
+            MarkdownEditor.SelectionStart);
+        if (anchor is null)
+        {
+            ViewModel.StatusText = AppText.HtmlSynchronizationNotFoundStatus;
+            return;
+        }
+
+        var preview = PreviewBrowser.CoreWebView2;
+        if (preview is null)
+        {
+            ViewModel.StatusText = AppText.HtmlSynchronizationNotFoundStatus;
+            return;
+        }
+
+        try
+        {
+            var result = await preview.ExecuteScriptAsync(
+                BuildFindHtmlBlockScript(anchor));
+            ViewModel.StatusText = JsonSerializer.Deserialize<bool>(result)
+                ? AppText.HtmlSynchronizedStatus
+                : AppText.HtmlSynchronizationNotFoundStatus;
+        }
+        catch (Exception)
+        {
+            ViewModel.StatusText = AppText.HtmlSynchronizationNotFoundStatus;
+        }
+    }
+
+    private async Task SynchronizeMarkdownEditorAsync()
+    {
+        var preview = PreviewBrowser.CoreWebView2;
+        if (preview is null)
+        {
+            ViewModel.StatusText = AppText.MarkdownSynchronizationNotFoundStatus;
+            return;
+        }
+
+        try
+        {
+            var result = await preview.ExecuteScriptAsync(BuildVisibleHtmlAnchorScript());
+            var anchorJson = JsonSerializer.Deserialize<string>(result);
+            var anchor = anchorJson is null
+                ? null
+                : JsonSerializer.Deserialize<TextSynchronizationAnchor>(anchorJson);
+            var block = anchor is null
+                ? null
+                : MarkdownTextSynchronizer.FindMatchingBlock(
+                    MarkdownEditor.Text,
+                    anchor);
+
+            if (block is null)
+            {
+                ViewModel.StatusText = AppText.MarkdownSynchronizationNotFoundStatus;
+                return;
+            }
+
+            MarkdownEditor.ScrollToLine(block.StartLine);
+            MarkdownEditor.Focus();
+            ViewModel.StatusText = AppText.MarkdownSynchronizedStatus;
+        }
+        catch (Exception)
+        {
+            ViewModel.StatusText = AppText.MarkdownSynchronizationNotFoundStatus;
+        }
+    }
+
+    private static string BuildFindHtmlBlockScript(
+        TextSynchronizationAnchor anchor) =>
+        string.Concat(
+            "(()=>{const a=",
+            JsonSerializer.Serialize(anchor),
+            ";const n=v=>v.normalize('NFD').toLowerCase().replace(/\\p{M}/gu,'').replace(/[^\\p{L}\\p{N}]/gu,'');",
+            "const e=[...document.querySelectorAll('h1,h2,h3,h4,h5,h6,p,li,pre,blockquote,tr')]",
+            ".map(x=>({element:x,text:n(x.innerText)})).filter(x=>x.text);const m=e.map((x,i)=>({x,i})).filter(x=>x.x.text===a.Text);",
+            "if(!m.length)return false;const s=q=>(a.Previous&&e[q.i-1].text===a.Previous?1:0)+(a.Next&&e[q.i+1].text===a.Next?1:0);",
+            "const h=Math.max(...m.map(s));const b=m.filter(q=>s(q)===h);if(m.length>1&&(h===0||b.length!==1))return false;",
+            "b[0].x.element.scrollIntoView({block:'center'});return true;})()");
+
+    private static string BuildVisibleHtmlAnchorScript() =>
+        "(()=>{const n=v=>v.normalize('NFD').toLowerCase().replace(/\\p{M}/gu,'').replace(/[^\\p{L}\\p{N}]/gu,'');"
+        + "const y=window.innerHeight/3;const e=[...document.querySelectorAll('h1,h2,h3,h4,h5,h6,p,li,pre,blockquote,tr')]"
+        + ".map(x=>({text:n(x.innerText),distance:Math.abs(((x.getBoundingClientRect().top+x.getBoundingClientRect().bottom)/2)-y)})).filter(x=>x.text);"
+        + "if(!e.length)return null;const q=e.reduce((a,b)=>a.distance<=b.distance?a:b);const i=e.indexOf(q);"
+        + "return JSON.stringify({Text:q.text,Previous:i?e[i-1].text:null,Next:i<e.length-1?e[i+1].text:null});})()";
 
     private void ApplyEditMode(bool isEnabled)
     {

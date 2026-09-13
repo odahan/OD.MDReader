@@ -20,6 +20,20 @@ internal static class AppText
     /// <summary>Gets the status message for a new document.</summary>
     public const string NewDocumentStatus = "New document.";
 
+    /// <summary>Gets the status message after synchronizing the HTML preview.</summary>
+    public const string HtmlSynchronizedStatus = "HTML preview synchronized.";
+
+    /// <summary>Gets the status message after synchronizing the Markdown editor.</summary>
+    public const string MarkdownSynchronizedStatus = "Markdown editor synchronized.";
+
+    /// <summary>Gets the status message when no matching HTML block is found.</summary>
+    public const string HtmlSynchronizationNotFoundStatus =
+        "No unambiguous matching HTML block was found.";
+
+    /// <summary>Gets the status message when no matching Markdown block is found.</summary>
+    public const string MarkdownSynchronizationNotFoundStatus =
+        "No unambiguous matching Markdown block was found.";
+
     /// <summary>Gets the status format displayed after saving.</summary>
     public const string SavedStatusFormat = "Saved: {0}";
 

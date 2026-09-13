@@ -106,6 +106,12 @@ internal sealed class FakeEditorTextOperations : IEditorTextOperations
     /// <summary>Gets the number of focus requests.</summary>
     public int FocusRequestCount { get; private set; }
 
+    /// <summary>Gets the number of HTML-preview synchronization requests.</summary>
+    public int SynchronizeHtmlPreviewRequestCount { get; private set; }
+
+    /// <summary>Gets the number of Markdown-editor synchronization requests.</summary>
+    public int SynchronizeMarkdownEditorRequestCount { get; private set; }
+
     /// <inheritdoc />
     public void WrapSelection(string prefix, string suffix) =>
         WrapRequests.Add((prefix, suffix));
@@ -116,6 +122,12 @@ internal sealed class FakeEditorTextOperations : IEditorTextOperations
 
     /// <inheritdoc />
     public void FocusEditor() => FocusRequestCount++;
+
+    /// <inheritdoc />
+    public void SynchronizeHtmlPreview() => SynchronizeHtmlPreviewRequestCount++;
+
+    /// <inheritdoc />
+    public void SynchronizeMarkdownEditor() => SynchronizeMarkdownEditorRequestCount++;
 }
 
 /// <summary>

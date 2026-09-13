@@ -183,6 +183,13 @@
                                 Command="{Binding InsertHorizontalRuleCommand}"
                                 ToolTip="{x:Static constants:UiText.RuleToolTip}" />
                         <Separator />
+                        <Button Content="{x:Static constants:UiText.SynchronizeHtmlButton}"
+                                Command="{Binding SynchronizeHtmlCommand}"
+                                ToolTip="{x:Static constants:UiText.SynchronizeHtmlToolTip}" />
+                        <Button Content="{x:Static constants:UiText.SynchronizeMarkdownButton}"
+                                Command="{Binding SynchronizeMarkdownCommand}"
+                                ToolTip="{x:Static constants:UiText.SynchronizeMarkdownToolTip}" />
+                        <Separator />
                         <ToggleButton Content="{x:Static constants:UiText.WordWrapButton}"
                                       IsChecked="{Binding IsWordWrapEnabled, Mode=TwoWay}"
                                       Style="{StaticResource {x:Static constants:UiResourceKeys.WordWrapToggleStyle}}"

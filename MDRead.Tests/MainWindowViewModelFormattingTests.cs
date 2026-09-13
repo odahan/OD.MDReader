@@ -64,4 +64,17 @@ public sealed class MainWindowViewModelFormattingTests
             ],
             context.Editor.WrapRequests);
     }
+
+    [Fact]
+    public void SynchronizationCommands_RequestExpectedEditorOperations()
+    {
+        var context = new ViewModelTestContext();
+        var viewModel = context.CreateViewModel();
+
+        viewModel.SynchronizeHtmlCommand.Execute(null);
+        viewModel.SynchronizeMarkdownCommand.Execute(null);
+
+        Assert.Equal(1, context.Editor.SynchronizeHtmlPreviewRequestCount);
+        Assert.Equal(1, context.Editor.SynchronizeMarkdownEditorRequestCount);
+    }
 }

@@ -110,6 +110,12 @@ public static class UiText
     /// <summary>Gets the word-wrap switch text.</summary>
     public const string WordWrapButton = "Wrap";
 
+    /// <summary>Gets the HTML synchronization button text.</summary>
+    public const string SynchronizeHtmlButton = "Sync HTML";
+
+    /// <summary>Gets the Markdown synchronization button text.</summary>
+    public const string SynchronizeMarkdownButton = "Sync Markdown";
+
     /// <summary>Gets the level-one heading tooltip.</summary>
     public const string Heading1ToolTip = "Heading 1";
 
@@ -160,4 +166,10 @@ public static class UiText
 
     /// <summary>Gets the word-wrap switch tooltip.</summary>
     public const string WordWrapToolTip = "Toggle word wrap";
+
+    /// <summary>Gets the HTML synchronization button tooltip.</summary>
+    public const string SynchronizeHtmlToolTip = "Show the current Markdown block in the HTML preview";
+
+    /// <summary>Gets the Markdown synchronization button tooltip.</summary>
+    public const string SynchronizeMarkdownToolTip = "Show the visible HTML block in the Markdown editor";
 }

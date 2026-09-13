@@ -22,4 +22,14 @@ internal interface IEditorTextOperations
     /// Moves keyboard focus to the editor.
     /// </summary>
     void FocusEditor();
+
+    /// <summary>
+    /// Synchronizes the HTML preview with the Markdown block at the current caret position.
+    /// </summary>
+    void SynchronizeHtmlPreview();
+
+    /// <summary>
+    /// Synchronizes the Markdown editor with the rendered HTML block currently in view.
+    /// </summary>
+    void SynchronizeMarkdownEditor();
 }

@@ -374,6 +374,12 @@ internal partial class MainWindowViewModel : ObservableObject
             MarkdownSyntax.HorizontalRule,
             string.Empty);
 
+    [RelayCommand]
+    private void SynchronizeHtml() => _editorOperations.SynchronizeHtmlPreview();
+
+    [RelayCommand]
+    private void SynchronizeMarkdown() => _editorOperations.SynchronizeMarkdownEditor();
+
     partial void OnMarkdownTextChanged(string value)
     {
         if (_isLoadingDocument)
