@@ -11,6 +11,7 @@ internal static class ApplicationConstants
     /// <summary>Gets the maximum number of recent files retained in settings.</summary>
     public const int MaximumRecentFiles = 10;
 
+
     /// <summary>Gets the light-theme command-line argument.</summary>
     public const string LightThemeArgument = "--light";
 

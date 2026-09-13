@@ -17,6 +17,7 @@ internal static class AppText
     /// <summary>Gets the initial status message.</summary>
     public const string ReadyStatus = "Open a Markdown file to begin.";
 
+
     /// <summary>Gets the status message for a new document.</summary>
     public const string NewDocumentStatus = "New document.";
 
