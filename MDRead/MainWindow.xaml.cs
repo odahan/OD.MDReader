@@ -218,14 +218,13 @@ public partial class MainWindow : Window, IEditorTextOperations
                     MarkdownEditor.Text,
                     anchor);
 
-            if (block is null)
+            if (anchor is null || block is null)
             {
                 ViewModel.StatusText = AppText.MarkdownSynchronizationNotFoundStatus;
                 return;
             }
 
-            MarkdownEditor.ScrollToLine(block.StartLine);
-            MarkdownEditor.Focus();
+            ScrollMarkdownEditorTo(block, anchor.BlockProgress);
             ViewModel.StatusText = AppText.MarkdownSynchronizedStatus;
         }
         catch (Exception)
@@ -249,9 +248,27 @@ public partial class MainWindow : Window, IEditorTextOperations
     private static string BuildVisibleHtmlAnchorScript() =>
         "(()=>{const n=v=>v.normalize('NFD').toLowerCase().replace(/\\p{M}/gu,'').replace(/[^\\p{L}\\p{N}]/gu,'');"
         + "const y=window.innerHeight/3;const e=[...document.querySelectorAll('h1,h2,h3,h4,h5,h6,p,li,pre,blockquote,tr')]"
-        + ".map(x=>({text:n(x.innerText),distance:Math.abs(((x.getBoundingClientRect().top+x.getBoundingClientRect().bottom)/2)-y)})).filter(x=>x.text);"
+        + ".map(x=>({element:x,text:n(x.innerText),distance:Math.abs(((x.getBoundingClientRect().top+x.getBoundingClientRect().bottom)/2)-y)})).filter(x=>x.text);"
         + "if(!e.length)return null;const q=e.reduce((a,b)=>a.distance<=b.distance?a:b);const i=e.indexOf(q);"
-        + "return JSON.stringify({Text:q.text,Previous:i?e[i-1].text:null,Next:i<e.length-1?e[i+1].text:null});})()";
+        + "const r=q.element.getBoundingClientRect();const p=Math.max(0,Math.min(1,(y-r.top)/Math.max(r.height,1)));"
+        + "return JSON.stringify({Text:q.text,Previous:i?e[i-1].text:null,Next:i<e.length-1?e[i+1].text:null,BlockProgress:p});})()";
+
+    private void ScrollMarkdownEditorTo(
+        MarkdownTextBlock block,
+        double blockProgress)
+    {
+        var progress = Math.Clamp(blockProgress, 0, 1);
+        var targetIndex = block.Start + (int)Math.Round(
+            (block.End - block.Start) * progress);
+        targetIndex = Math.Clamp(targetIndex, 0, MarkdownEditor.Text.Length);
+
+        var selectionStart = MarkdownEditor.SelectionStart;
+        var selectionLength = MarkdownEditor.SelectionLength;
+        MarkdownEditor.Select(targetIndex, 0);
+        MarkdownEditor.Focus();
+        MarkdownEditor.UpdateLayout();
+        MarkdownEditor.Select(selectionStart, selectionLength);
+    }
 
     private void ApplyEditMode(bool isEnabled)
     {

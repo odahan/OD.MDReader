@@ -33,6 +33,16 @@ internal sealed class DialogService : IDialogService
             _isDarkThemeProvider());
 
     /// <inheritdoc />
+    public void ShowAbout(string message, string title) =>
+        ThemedDialog.Show(
+            _owner,
+            message,
+            title,
+            DialogButtonSet.Ok,
+            _isDarkThemeProvider(),
+            showApplicationIcon: true);
+
+    /// <inheritdoc />
     public bool Confirm(string message, string? title = null) =>
         ThemedDialog.Show(
             _owner,

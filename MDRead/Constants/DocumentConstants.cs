@@ -42,3 +42,12 @@ internal static class DocumentConstants
                 StringComparison.OrdinalIgnoreCase);
     }
 }
+
+/// <summary>
+/// Provides registry values used to register Markdown file associations.
+/// </summary>
+internal static class FileAssociationConstants
+{
+    /// <summary>Gets the Windows ProgID registered for Markdown documents.</summary>
+    public const string MarkdownProgId = "MDRead.Markdown";
+}

@@ -81,6 +81,12 @@ public static class UiLayoutConstants
 
     /// <summary>Gets the themed-dialog button margin.</summary>
     internal static readonly Thickness DialogButtonMargin = new(8, 0, 0, 0);
+
+    /// <summary>Gets the application-icon size shown in the About dialog.</summary>
+    internal const double AboutIconSize = 72;
+
+    /// <summary>Gets the application-icon margin shown in the About dialog.</summary>
+    internal static readonly Thickness AboutIconMargin = new(0, 0, 0, 16);
 }
 
 /// <summary>

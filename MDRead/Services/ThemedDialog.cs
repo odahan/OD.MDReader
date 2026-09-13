@@ -2,6 +2,7 @@ using MDRead.Constants;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
+using System.Windows.Media.Imaging;
 
 namespace MDRead.Services;
 
@@ -33,13 +34,15 @@ internal static class ThemedDialog
     /// <param name="title">The dialog title.</param>
     /// <param name="buttonSet">The buttons to display.</param>
     /// <param name="isDarkTheme">Whether the dark theme is active.</param>
+    /// <param name="showApplicationIcon">Whether to display the application icon above the message.</param>
     /// <returns>The selected button result.</returns>
     public static MessageBoxResult Show(
         Window owner,
         string message,
         string title,
         DialogButtonSet buttonSet,
-        bool isDarkTheme)
+        bool isDarkTheme,
+        bool showApplicationIcon = false)
     {
         var palette = ThemePalette.Select(isDarkTheme);
         var result = buttonSet == DialogButtonSet.YesNoCancel
@@ -51,7 +54,7 @@ internal static class ThemedDialog
 
         DockPanel.SetDock(buttonPanel, Dock.Bottom);
         contentPanel.Children.Add(buttonPanel);
-        contentPanel.Children.Add(CreateMessage(message));
+        contentPanel.Children.Add(CreateMessageContent(message, showApplicationIcon));
         dialog.Content = contentPanel;
 
         void AddButton(
@@ -118,6 +121,31 @@ internal static class ThemedDialog
             HorizontalAlignment = HorizontalAlignment.Right,
             Margin = UiLayoutConstants.DialogButtonPanelMargin
         };
+
+    private static FrameworkElement CreateMessageContent(
+        string message,
+        bool showApplicationIcon)
+    {
+        var textBlock = CreateMessage(message);
+        if (!showApplicationIcon)
+        {
+            return textBlock;
+        }
+
+        var panel = new StackPanel();
+        panel.Children.Add(new Image
+        {
+            Source = new BitmapImage(new Uri(
+                "pack://application:,,,/Assets/AppIcon.png",
+                UriKind.Absolute)),
+            Width = UiLayoutConstants.AboutIconSize,
+            Height = UiLayoutConstants.AboutIconSize,
+            HorizontalAlignment = HorizontalAlignment.Center,
+            Margin = UiLayoutConstants.AboutIconMargin
+        });
+        panel.Children.Add(textBlock);
+        return panel;
+    }
 
     private static TextBlock CreateMessage(string message) =>
         new()

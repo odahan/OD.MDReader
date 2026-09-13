@@ -9,6 +9,7 @@
         MinHeight="{x:Static constants:UiLayoutConstants.MinimumWindowHeight}"
         MinWidth="{x:Static constants:UiLayoutConstants.MinimumWindowWidth}"
         WindowStartupLocation="CenterScreen"
+        Icon="Assets/AppIcon.ico"
         AllowDrop="True"
         PreviewDragOver="Window_PreviewDragOver"
         PreviewDrop="Window_PreviewDrop"
@@ -63,6 +64,13 @@
                 <Separator />
                 <MenuItem Header="{x:Static constants:UiText.ExportHtmlMenuItem}"
                           Command="{Binding ExportHtmlCommand}" />
+                <Separator />
+                <MenuItem Header="{x:Static constants:UiText.CreateDesktopShortcutMenuItem}"
+                          Command="{Binding CreateDesktopShortcutCommand}" />
+                <MenuItem Header="{x:Static constants:UiText.AssociateMarkdownFilesMenuItem}"
+                          Command="{Binding AssociateMarkdownFilesCommand}"
+                          IsCheckable="True"
+                          IsChecked="{Binding IsMarkdownFileAssociationRegistered, Mode=OneWay}" />
                 <Separator />
                 <MenuItem Header="{x:Static constants:UiText.ExitMenuItem}"
                           Command="{Binding ExitCommand}" />

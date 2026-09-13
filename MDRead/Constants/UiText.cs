@@ -26,6 +26,12 @@ public static class UiText
     /// <summary>Gets the HTML export command header.</summary>
     public const string ExportHtmlMenuItem = "Export _HTML...";
 
+    /// <summary>Gets the desktop-shortcut command header.</summary>
+    public const string CreateDesktopShortcutMenuItem = "Create _desktop shortcut";
+
+    /// <summary>Gets the Markdown file-association command header.</summary>
+    public const string AssociateMarkdownFilesMenuItem = "_Associate Markdown files";
+
     /// <summary>Gets the Exit command header.</summary>
     public const string ExitMenuItem = "E_xit";
 

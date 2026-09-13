@@ -18,6 +18,8 @@ internal partial class MainWindowViewModel : ObservableObject
 {
     private readonly IDialogService _dialogService;
     private readonly IEditorTextOperations _editorOperations;
+    private readonly IDesktopShortcutService _desktopShortcutService;
+    private readonly IFileAssociationService _fileAssociationService;
     private readonly IShellLauncher _shellLauncher;
     private readonly ISettingsService _settingsService;
     private readonly UserSettings _settings;
@@ -54,18 +56,24 @@ internal partial class MainWindowViewModel : ObservableObject
     /// </summary>
     /// <param name="dialogService">The modal dialog abstraction.</param>
     /// <param name="editorOperations">The selection-aware editor operations.</param>
+    /// <param name="desktopShortcutService">The desktop shortcut service.</param>
+    /// <param name="fileAssociationService">The current-user file association service.</param>
     /// <param name="shellLauncher">The approved-target launcher.</param>
     /// <param name="settingsService">The settings persistence service.</param>
     /// <param name="startupArguments">The command-line arguments.</param>
     public MainWindowViewModel(
         IDialogService dialogService,
         IEditorTextOperations editorOperations,
+        IDesktopShortcutService desktopShortcutService,
+        IFileAssociationService fileAssociationService,
         IShellLauncher shellLauncher,
         ISettingsService settingsService,
         IEnumerable<string> startupArguments)
     {
         _dialogService = dialogService;
         _editorOperations = editorOperations;
+        _desktopShortcutService = desktopShortcutService;
+        _fileAssociationService = fileAssociationService;
         _shellLauncher = shellLauncher;
         _settingsService = settingsService;
         _startupArguments = startupArguments.ToArray();
@@ -91,6 +99,12 @@ internal partial class MainWindowViewModel : ObservableObject
         _settings.EditorHeight > UiLayoutConstants.MinimumEditorHeight
             ? _settings.EditorHeight
             : UiLayoutConstants.DefaultEditorHeight;
+
+    /// <summary>
+    /// Gets whether the supported Markdown extensions are currently associated with this executable.
+    /// </summary>
+    public bool IsMarkdownFileAssociationRegistered =>
+        _fileAssociationService.IsMarkdownAssociationRegistered();
 
     /// <summary>
     /// Completes application startup after WebView2 is ready.
@@ -241,6 +255,31 @@ internal partial class MainWindowViewModel : ObservableObject
     private void SaveAs() => SaveToNewPath();
 
     [RelayCommand]
+    private void CreateDesktopShortcut()
+    {
+        var result = _desktopShortcutService.CreateDesktopShortcut();
+        StatusText = result.ShortcutPath is not null
+            ? string.Format(
+                AppText.DesktopShortcutCreatedStatusFormat,
+                result.ShortcutPath)
+            : string.Format(
+                AppText.DesktopShortcutFailedStatusFormat,
+                result.ErrorMessage ?? string.Empty);
+    }
+
+    [RelayCommand]
+    private void AssociateMarkdownFiles()
+    {
+        var result = _fileAssociationService.AssociateMarkdownFiles();
+        StatusText = result.IsSuccessful
+            ? AppText.MarkdownFilesAssociatedStatus
+            : string.Format(
+                AppText.MarkdownFileAssociationFailedStatusFormat,
+                result.ErrorMessage ?? string.Empty);
+        OnPropertyChanged(nameof(IsMarkdownFileAssociationRegistered));
+    }
+
+    [RelayCommand]
     private void ExportHtml()
     {
         var suggestedFileName = _filePath is null
@@ -292,7 +331,7 @@ internal partial class MainWindowViewModel : ObservableObject
 
     [RelayCommand]
     private void ShowAbout() =>
-        _dialogService.ShowMessage(
+        _dialogService.ShowAbout(
             AppText.AboutMessage,
             AppText.AboutTitle);
 

@@ -55,4 +55,16 @@ public sealed class MarkdownTextSynchronizerTests
 
         Assert.Null(block);
     }
+
+    [Fact]
+    public void TextSynchronizationAnchor_PreservesTheVisibleBlockProgress()
+    {
+        var anchor = new TextSynchronizationAnchor(
+            "section",
+            "previous",
+            "next",
+            0.6);
+
+        Assert.Equal(0.6, anchor.BlockProgress);
+    }
 }

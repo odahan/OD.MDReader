@@ -35,6 +35,8 @@ public partial class App : Application
             viewModel = new MainWindowViewModel(
                 dialogService,
                 window,
+                new DesktopShortcutService(),
+                new FileAssociationService(),
                 new ShellLauncher(),
                 new JsonSettingsService(),
                 e.Args);

@@ -21,6 +21,40 @@ internal static class AppText
     /// <summary>Gets the status message for a new document.</summary>
     public const string NewDocumentStatus = "New document.";
 
+    /// <summary>Gets the desktop shortcut file name.</summary>
+    public const string DesktopShortcutFileName = "MDRead.lnk";
+
+    /// <summary>Gets the desktop shortcut creation status format.</summary>
+    public const string DesktopShortcutCreatedStatusFormat =
+        "Desktop shortcut created: {0}";
+
+    /// <summary>Gets the desktop shortcut failure status format.</summary>
+    public const string DesktopShortcutFailedStatusFormat =
+        "Could not create the desktop shortcut: {0}";
+
+    /// <summary>Gets the shortcut creation error when no executable is available.</summary>
+    public const string DesktopShortcutExecutableNotFound =
+        "The current application executable could not be found.";
+
+    /// <summary>Gets the status message after associating Markdown files.</summary>
+    public const string MarkdownFilesAssociatedStatus =
+        "Markdown files are associated with MDRead.";
+
+    /// <summary>Gets the Markdown file-association failure status format.</summary>
+    public const string MarkdownFileAssociationFailedStatusFormat =
+        "Could not associate Markdown files: {0}";
+
+    /// <summary>Gets the Markdown document type description.</summary>
+    public const string MarkdownFileTypeDescription = "Markdown document";
+
+    /// <summary>Gets the registry error reported when the current-user classes hive is unavailable.</summary>
+    public const string FileAssociationRegistryUnavailable =
+        "The current-user file association registry is unavailable.";
+
+    /// <summary>Gets the file-association error when no executable is available.</summary>
+    public const string FileAssociationExecutableNotFound =
+        "The current application executable could not be found.";
+
     /// <summary>Gets the status message after synchronizing the HTML preview.</summary>
     public const string HtmlSynchronizedStatus = "HTML preview synchronized.";
 

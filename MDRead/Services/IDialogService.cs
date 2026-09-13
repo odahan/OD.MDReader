@@ -28,6 +28,13 @@ internal interface IDialogService
     void ShowMessage(string message, string? title = null);
 
     /// <summary>
+    /// Displays the About dialog with the application icon.
+    /// </summary>
+    /// <param name="message">The About text.</param>
+    /// <param name="title">The dialog title.</param>
+    void ShowAbout(string message, string title);
+
+    /// <summary>
     /// Displays a yes-or-no confirmation.
     /// </summary>
     /// <param name="message">The question to display.</param>

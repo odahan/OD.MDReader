@@ -80,6 +80,37 @@ public sealed class MainWindowViewModelStateTests
     }
 
     [Fact]
+    public void CreateDesktopShortcut_UpdatesTheStatusWithTheShortcutPath()
+    {
+        var context = new ViewModelTestContext();
+        var viewModel = context.CreateViewModel();
+
+        viewModel.CreateDesktopShortcutCommand.Execute(null);
+
+        Assert.Equal(1, context.DesktopShortcuts.RequestCount);
+        Assert.Equal(
+            string.Format(
+                AppText.DesktopShortcutCreatedStatusFormat,
+                context.DesktopShortcuts.Result.ShortcutPath),
+            viewModel.StatusText);
+    }
+
+    [Fact]
+    public void AssociateMarkdownFiles_UpdatesTheStatusAfterRegisteringTheExtensions()
+    {
+        var context = new ViewModelTestContext();
+        var viewModel = context.CreateViewModel();
+
+        Assert.False(viewModel.IsMarkdownFileAssociationRegistered);
+
+        viewModel.AssociateMarkdownFilesCommand.Execute(null);
+
+        Assert.Equal(1, context.FileAssociations.RequestCount);
+        Assert.Equal(AppText.MarkdownFilesAssociatedStatus, viewModel.StatusText);
+        Assert.True(viewModel.IsMarkdownFileAssociationRegistered);
+    }
+
+    [Fact]
     public void EditMode_FocusesAndUpdatesEscapeCommandWithoutPersisting()
     {
         var context = new ViewModelTestContext();

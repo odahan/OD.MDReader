@@ -15,6 +15,12 @@ internal sealed class ViewModelTestContext
     /// <summary>Gets the fake editor adapter.</summary>
     public FakeEditorTextOperations Editor { get; } = new();
 
+    /// <summary>Gets the fake desktop shortcut service.</summary>
+    public FakeDesktopShortcutService DesktopShortcuts { get; } = new();
+
+    /// <summary>Gets the fake Markdown file association service.</summary>
+    public FakeFileAssociationService FileAssociations { get; } = new();
+
     /// <summary>Gets the fake shell launcher.</summary>
     public FakeShellLauncher Shell { get; } = new();
 
@@ -23,7 +29,14 @@ internal sealed class ViewModelTestContext
 
     /// <summary>Creates a view model backed by the context's service doubles.</summary>
     public MainWindowViewModel CreateViewModel(params string[] startupArguments) =>
-        new(Dialogs, Editor, Shell, Settings, startupArguments);
+        new(
+            Dialogs,
+            Editor,
+            DesktopShortcuts,
+            FileAssociations,
+            Shell,
+            Settings,
+            startupArguments);
 }
 
 /// <summary>
@@ -64,6 +77,10 @@ internal sealed class FakeDialogService : IDialogService
         Messages.Add((message, title));
 
     /// <inheritdoc />
+    public void ShowAbout(string message, string title) =>
+        Messages.Add((message, title));
+
+    /// <inheritdoc />
     public bool Confirm(string message, string? title = null) =>
         _confirmations.Count > 0 && _confirmations.Dequeue();
 
@@ -90,6 +107,52 @@ internal sealed class FakeDialogService : IDialogService
         LastSuggestedFileName = suggestedFileName;
         return SavePath;
     }
+}
+
+/// <summary>
+/// Records desktop-shortcut creation requests.
+/// </summary>
+internal sealed class FakeDesktopShortcutService : IDesktopShortcutService
+{
+    /// <summary>Gets the number of shortcut creation requests.</summary>
+    public int RequestCount { get; private set; }
+
+    /// <summary>Gets or sets the result returned for a shortcut creation request.</summary>
+    public DesktopShortcutResult Result { get; set; } =
+        new("C:\\Users\\Test\\Desktop\\MDRead.lnk", null);
+
+    /// <inheritdoc />
+    public DesktopShortcutResult CreateDesktopShortcut()
+    {
+        RequestCount++;
+        return Result;
+    }
+}
+
+/// <summary>
+/// Records Markdown file-association requests.
+/// </summary>
+internal sealed class FakeFileAssociationService : IFileAssociationService
+{
+    /// <summary>Gets the number of file-association requests.</summary>
+    public int RequestCount { get; private set; }
+
+    /// <summary>Gets or sets the result returned for a file-association request.</summary>
+    public FileAssociationResult Result { get; set; } = new(true, null);
+
+    /// <summary>Gets or sets whether the current executable is registered for Markdown files.</summary>
+    public bool IsRegistered { get; set; }
+
+    /// <inheritdoc />
+    public FileAssociationResult AssociateMarkdownFiles()
+    {
+        RequestCount++;
+        IsRegistered |= Result.IsSuccessful;
+        return Result;
+    }
+
+    /// <inheritdoc />
+    public bool IsMarkdownAssociationRegistered() => IsRegistered;
 }
 
 /// <summary>

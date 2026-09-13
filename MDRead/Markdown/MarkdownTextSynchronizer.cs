@@ -365,10 +365,12 @@ internal static class MarkdownTextSynchronizer
 /// <param name="Text">The normalized text of the block.</param>
 /// <param name="Previous">The normalized text of the preceding block, when available.</param>
 /// <param name="Next">The normalized text of the following block, when available.</param>
+/// <param name="BlockProgress">The relative position within the visible block.</param>
 internal sealed record TextSynchronizationAnchor(
     string Text,
     string? Previous,
-    string? Next);
+    string? Next,
+    double BlockProgress = 0);
 
 /// <summary>
 /// Describes a logical Markdown block and its location in the source editor.
