@@ -156,6 +156,27 @@ public static class UiStyleConstants
     /// <summary>Gets the scrollbar thumb margin.</summary>
     public static readonly Thickness ScrollThumbMargin = new(2);
 
+    /// <summary>Gets the minimum height of a vertical scrollbar thumb.</summary>
+    public const double MinimumVerticalScrollThumbHeight = 32;
+
+    /// <summary>Gets the width of the word-wrap switch track.</summary>
+    public const double WordWrapSwitchWidth = 32;
+
+    /// <summary>Gets the height of the word-wrap switch track.</summary>
+    public const double WordWrapSwitchHeight = 16;
+
+    /// <summary>Gets the diameter of the word-wrap switch thumb.</summary>
+    public const double WordWrapSwitchThumbSize = 12;
+
+    /// <summary>Gets the corner radius of the word-wrap switch track.</summary>
+    public static readonly CornerRadius WordWrapSwitchCornerRadius = new(8);
+
+    /// <summary>Gets the margin between the word-wrap label and its switch.</summary>
+    public static readonly Thickness WordWrapSwitchContentMargin = new(0, 0, 6, 0);
+
+    /// <summary>Gets the inset around the word-wrap switch thumb.</summary>
+    public static readonly Thickness WordWrapSwitchThumbMargin = new(2);
+
     /// <summary>Gets the toolbar border thickness.</summary>
     public static readonly Thickness ToolBarBorderThickness = new(0, 0, 0, 1);
 

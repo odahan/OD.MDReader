@@ -182,6 +182,11 @@
                         <Button Content="{x:Static constants:UiText.RuleButton}"
                                 Command="{Binding InsertHorizontalRuleCommand}"
                                 ToolTip="{x:Static constants:UiText.RuleToolTip}" />
+                        <Separator />
+                        <ToggleButton Content="{x:Static constants:UiText.WordWrapButton}"
+                                      IsChecked="{Binding IsWordWrapEnabled, Mode=TwoWay}"
+                                      Style="{StaticResource {x:Static constants:UiResourceKeys.WordWrapToggleStyle}}"
+                                      ToolTip="{x:Static constants:UiText.WordWrapToolTip}" />
                     </ToolBar>
 
                     <TextBox x:Name="MarkdownEditor"
@@ -191,11 +196,21 @@
                              FontFamily="{x:Static constants:UiLayoutConstants.EditorFontFamily}"
                              FontSize="{x:Static constants:UiLayoutConstants.EditorFontSize}"
                              VerticalScrollBarVisibility="Auto"
-                             HorizontalScrollBarVisibility="Auto"
-                             TextWrapping="NoWrap"
                              Padding="{x:Static constants:UiLayoutConstants.EditorPadding}"
                              Background="{DynamicResource {x:Static constants:ThemeResourceKeys.EditorBackground}}"
                              Foreground="{DynamicResource {x:Static constants:ThemeResourceKeys.EditorForeground}}">
+                        <TextBox.Style>
+                            <Style TargetType="TextBox">
+                                <Setter Property="HorizontalScrollBarVisibility" Value="Auto" />
+                                <Setter Property="TextWrapping" Value="NoWrap" />
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding IsWordWrapEnabled}" Value="True">
+                                        <Setter Property="HorizontalScrollBarVisibility" Value="Disabled" />
+                                        <Setter Property="TextWrapping" Value="Wrap" />
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </TextBox.Style>
                         <TextBox.Resources>
                             <Style TargetType="ScrollBar"
                                    BasedOn="{StaticResource {x:Static constants:UiResourceKeys.EditorScrollBarStyle}}" />

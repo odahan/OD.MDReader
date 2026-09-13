@@ -107,6 +107,9 @@ public static class UiText
     /// <summary>Gets the horizontal-rule button text.</summary>
     public const string RuleButton = "Rule";
 
+    /// <summary>Gets the word-wrap switch text.</summary>
+    public const string WordWrapButton = "Wrap";
+
     /// <summary>Gets the level-one heading tooltip.</summary>
     public const string Heading1ToolTip = "Heading 1";
 
@@ -154,4 +157,7 @@ public static class UiText
 
     /// <summary>Gets the horizontal-rule tooltip.</summary>
     public const string RuleToolTip = "Horizontal rule";
+
+    /// <summary>Gets the word-wrap switch tooltip.</summary>
+    public const string WordWrapToolTip = "Toggle word wrap";
 }

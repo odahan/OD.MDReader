@@ -152,7 +152,8 @@
                                        Value="{Binding Value, RelativeSource={RelativeSource TemplatedParent}, Mode=TwoWay}"
                                        ViewportSize="{TemplateBinding ViewportSize}">
                                     <Track.Thumb>
-                                        <Thumb Background="{DynamicResource {x:Static constants:ThemeResourceKeys.ScrollThumb}}">
+                                        <Thumb x:Name="PART_Thumb"
+                                               Background="{DynamicResource {x:Static constants:ThemeResourceKeys.ScrollThumb}}">
                                             <Thumb.Style>
                                                 <Style TargetType="Thumb">
                                                     <Setter Property="Template">
@@ -181,6 +182,11 @@
                                     <Setter TargetName="PART_Track"
                                             Property="IsDirectionReversed"
                                             Value="False" />
+                                </Trigger>
+                                <Trigger Property="Orientation" Value="Vertical">
+                                    <Setter TargetName="PART_Thumb"
+                                            Property="MinHeight"
+                                            Value="{x:Static constants:UiStyleConstants.MinimumVerticalScrollThumbHeight}" />
                                 </Trigger>
                             </ControlTemplate.Triggers>
                         </ControlTemplate>
@@ -251,6 +257,62 @@
                                     <Setter TargetName="ButtonBorder"
                                             Property="Background"
                                             Value="{DynamicResource {x:Static constants:ThemeResourceKeys.MenuBorder}}" />
+                                </Trigger>
+                            </ControlTemplate.Triggers>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Style>
+
+            <Style x:Key="{x:Static constants:UiResourceKeys.WordWrapToggleStyle}"
+                   TargetType="ToggleButton">
+                <Setter Property="Foreground"
+                        Value="{DynamicResource {x:Static constants:ThemeResourceKeys.MenuForeground}}" />
+                <Setter Property="Background" Value="Transparent" />
+                <Setter Property="Padding"
+                        Value="{x:Static constants:UiStyleConstants.ToolBarButtonPadding}" />
+                <Setter Property="Margin"
+                        Value="{x:Static constants:UiStyleConstants.ToolBarButtonMargin}" />
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="ToggleButton">
+                            <Border x:Name="ToggleBorder"
+                                    Background="{TemplateBinding Background}"
+                                    Padding="{TemplateBinding Padding}"
+                                    CornerRadius="{x:Static constants:UiStyleConstants.ToolBarButtonCornerRadius}">
+                                <StackPanel Orientation="Horizontal">
+                                    <ContentPresenter VerticalAlignment="Center"
+                                                      Margin="{x:Static constants:UiStyleConstants.WordWrapSwitchContentMargin}" />
+                                    <Border x:Name="SwitchTrack"
+                                            Width="{x:Static constants:UiStyleConstants.WordWrapSwitchWidth}"
+                                            Height="{x:Static constants:UiStyleConstants.WordWrapSwitchHeight}"
+                                            Background="{DynamicResource {x:Static constants:ThemeResourceKeys.MenuBorder}}"
+                                            CornerRadius="{x:Static constants:UiStyleConstants.WordWrapSwitchCornerRadius}">
+                                        <Ellipse x:Name="SwitchThumb"
+                                                 Width="{x:Static constants:UiStyleConstants.WordWrapSwitchThumbSize}"
+                                                 Height="{x:Static constants:UiStyleConstants.WordWrapSwitchThumbSize}"
+                                                 Margin="{x:Static constants:UiStyleConstants.WordWrapSwitchThumbMargin}"
+                                                 HorizontalAlignment="Left"
+                                                 Fill="{DynamicResource {x:Static constants:ThemeResourceKeys.MenuForeground}}" />
+                                    </Border>
+                                </StackPanel>
+                            </Border>
+                            <ControlTemplate.Triggers>
+                                <Trigger Property="IsMouseOver" Value="True">
+                                    <Setter TargetName="ToggleBorder"
+                                            Property="Background"
+                                            Value="{DynamicResource {x:Static constants:ThemeResourceKeys.MenuHover}}" />
+                                </Trigger>
+                                <Trigger Property="IsChecked" Value="True">
+                                    <Setter TargetName="SwitchTrack"
+                                            Property="Background"
+                                            Value="{DynamicResource {x:Static constants:ThemeResourceKeys.ScrollThumb}}" />
+                                    <Setter TargetName="SwitchThumb"
+                                            Property="HorizontalAlignment"
+                                            Value="Right" />
+                                </Trigger>
+                                <Trigger Property="IsEnabled" Value="False">
+                                    <Setter Property="Opacity" Value="0.5" />
                                 </Trigger>
                             </ControlTemplate.Triggers>
                         </ControlTemplate>

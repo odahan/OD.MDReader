@@ -28,6 +28,7 @@ public sealed class MainWindowViewModelStateTests
 
         Assert.False(viewModel.IsDarkTheme);
         Assert.False(viewModel.IsEditMode);
+        Assert.False(viewModel.IsWordWrapEnabled);
         Assert.Equal(245, viewModel.EditorHeight);
         Assert.Equal(AppText.UntitledWindowTitle, viewModel.WindowTitle);
         Assert.Equal(AppText.ReadyStatus, viewModel.StatusText);
@@ -90,6 +91,18 @@ public sealed class MainWindowViewModelStateTests
         Assert.Equal(0, context.Settings.SaveCount);
         Assert.Equal(1, context.Editor.FocusRequestCount);
         Assert.False(viewModel.ExitPreviewCommand.CanExecute(null));
+    }
+
+    [Fact]
+    public void WordWrap_CanBeEnabledWithoutPersistingASetting()
+    {
+        var context = new ViewModelTestContext();
+        var viewModel = context.CreateViewModel();
+
+        viewModel.IsWordWrapEnabled = true;
+
+        Assert.True(viewModel.IsWordWrapEnabled);
+        Assert.Equal(0, context.Settings.SaveCount);
     }
 
     [Fact]

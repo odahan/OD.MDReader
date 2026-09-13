@@ -46,6 +46,9 @@ internal partial class MainWindowViewModel : ObservableObject
     [ObservableProperty]
     private bool _isEditMode;
 
+    [ObservableProperty]
+    private bool _isWordWrapEnabled;
+
     /// <summary>
     /// Initializes a new instance of the <see cref="MainWindowViewModel"/> class.
     /// </summary>

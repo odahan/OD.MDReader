@@ -132,6 +132,9 @@ public static class UiResourceKeys
 {
     /// <summary>Gets the editor scrollbar style key.</summary>
     public const string EditorScrollBarStyle = "EditorScrollBar";
+
+    /// <summary>Gets the editor word-wrap switch style key.</summary>
+    public const string WordWrapToggleStyle = "WordWrapToggle";
 }
 
 /// <summary>
