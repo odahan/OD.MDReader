@@ -77,6 +77,9 @@
             </MenuItem>
 
             <MenuItem Header="{x:Static constants:UiText.ViewMenu}">
+                <MenuItem Header="{x:Static constants:UiText.ReloadMenuItem}"
+                          Command="{Binding ReloadDocumentCommand}" />
+                <Separator />
                 <MenuItem Header="{x:Static constants:UiText.EditModeMenuItem}"
                           IsCheckable="True"
                           IsChecked="{Binding IsEditMode, Mode=TwoWay}" />

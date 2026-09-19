@@ -51,6 +51,52 @@ public sealed class MainWindowViewModelFileTests
     }
 
     [Fact]
+    public void ReloadDocument_ReloadsTheAssociatedFile()
+    {
+        using var temporaryDirectory = new TemporaryDirectory();
+        var documentPath = temporaryDirectory.GetPath("reload.md");
+        File.WriteAllText(documentPath, "Original");
+        var context = new ViewModelTestContext();
+        context.Dialogs.OpenPath = documentPath;
+        var viewModel = context.CreateViewModel();
+        viewModel.OpenDocumentCommand.Execute(null);
+        File.WriteAllText(documentPath, "Reloaded");
+
+        viewModel.ReloadDocumentCommand.Execute(null);
+
+        Assert.Equal("Reloaded", viewModel.MarkdownText);
+        Assert.Equal(
+            string.Format(AppText.ReloadedStatusFormat, Path.GetFullPath(documentPath)),
+            viewModel.StatusText);
+    }
+
+    [Fact]
+    public void ReloadDocument_IsDisabledForAnUnsavedNewDocument()
+    {
+        var context = new ViewModelTestContext();
+        var viewModel = context.CreateViewModel();
+
+        viewModel.NewDocumentCommand.Execute(null);
+
+        Assert.False(viewModel.ReloadDocumentCommand.CanExecute(null));
+    }
+
+    [Fact]
+    public void ReloadDocument_IsEnabledAfterSavingANewDocument()
+    {
+        using var temporaryDirectory = new TemporaryDirectory();
+        var documentPath = temporaryDirectory.GetPath("saved.md");
+        var context = new ViewModelTestContext();
+        context.Dialogs.SavePath = documentPath;
+        var viewModel = context.CreateViewModel();
+        viewModel.MarkdownText = "Saved document";
+
+        viewModel.SaveCommand.Execute(null);
+
+        Assert.True(viewModel.ReloadDocumentCommand.CanExecute(null));
+    }
+
+    [Fact]
     public void OpenDocument_UsesVirtualHostBaseForRelativeResources()
     {
         using var temporaryDirectory = new TemporaryDirectory();

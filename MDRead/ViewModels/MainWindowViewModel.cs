@@ -223,6 +223,7 @@ internal partial class MainWindowViewModel : ObservableObject
 
         SetDocumentText(string.Empty);
         _filePath = null;
+        ReloadDocumentCommand.NotifyCanExecuteChanged();
         PreviewResourceRoot = null;
         _isDirty = false;
         WindowTitle = AppText.UntitledWindowTitle;
@@ -257,6 +258,15 @@ internal partial class MainWindowViewModel : ObservableObject
 
     [RelayCommand]
     private void SaveAs() => SaveToNewPath();
+
+    [RelayCommand(CanExecute = nameof(CanReloadDocument))]
+    private void ReloadDocument()
+    {
+        if (_filePath is not null)
+        {
+            OpenFile(_filePath, isReload: true);
+        }
+    }
 
     [RelayCommand]
     private void CreateDesktopShortcut()
@@ -489,7 +499,9 @@ internal partial class MainWindowViewModel : ObservableObject
         };
     }
 
-    private void OpenFile(string path)
+    private bool CanReloadDocument() => _filePath is not null;
+
+    private void OpenFile(string path, bool isReload = false)
     {
         if (!ConfirmDiscardChanges())
         {
@@ -501,13 +513,16 @@ internal partial class MainWindowViewModel : ObservableObject
             var fullPath = Path.GetFullPath(path);
             SetDocumentText(File.ReadAllText(fullPath));
             _filePath = fullPath;
+            ReloadDocumentCommand.NotifyCanExecuteChanged();
             PreviewResourceRoot = Path.GetPathRoot(fullPath);
             _isDirty = false;
             RememberFile(fullPath);
             WindowTitle = string.Format(
                 AppText.WindowTitleFormat,
                 Path.GetFileName(fullPath));
-            StatusText = fullPath;
+            StatusText = isReload
+                ? string.Format(AppText.ReloadedStatusFormat, fullPath)
+                : fullPath;
             RenderPreview();
         }
         catch (Exception exception) when (
@@ -564,6 +579,7 @@ internal partial class MainWindowViewModel : ObservableObject
         }
 
         _filePath = fullPath;
+        ReloadDocumentCommand.NotifyCanExecuteChanged();
         PreviewResourceRoot = Path.GetPathRoot(fullPath);
         _isDirty = false;
         RememberFile(_filePath);

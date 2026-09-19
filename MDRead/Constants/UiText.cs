@@ -41,6 +41,9 @@ public static class UiText
     /// <summary>Gets the edit-mode command header.</summary>
     public const string EditModeMenuItem = "_Edit mode";
 
+    /// <summary>Gets the Reload command header.</summary>
+    public const string ReloadMenuItem = "_Reload";
+
     /// <summary>Gets the light-theme command header.</summary>
     public const string LightThemeMenuItem = "_Light theme";
 

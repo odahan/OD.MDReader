@@ -72,6 +72,9 @@ internal static class AppText
     /// <summary>Gets the status format displayed after saving.</summary>
     public const string SavedStatusFormat = "Saved: {0}";
 
+    /// <summary>Gets the status format displayed after reloading a document.</summary>
+    public const string ReloadedStatusFormat = "Reloaded: {0}";
+
     /// <summary>Gets the status format displayed after exporting.</summary>
     public const string ExportedStatusFormat = "Exported: {0}";
 
