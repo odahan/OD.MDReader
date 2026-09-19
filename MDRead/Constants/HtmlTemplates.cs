@@ -29,6 +29,19 @@ internal static class HtmlTemplates
         "if(a.href){e.preventDefault();" +
         "window.chrome.webview.postMessage(a.href);}},true);</script>";
 
+    /// <summary>
+    /// Creates a script that reloads relative image resources without using a cached response.
+    /// </summary>
+    /// <param name="resourceVersion">The version appended to image URLs.</param>
+    /// <returns>A script that refreshes relative image resources.</returns>
+    public static string CreateResourceReloadScript(long resourceVersion) =>
+        $"<script>document.querySelectorAll('img[src]').forEach(function(i){{" +
+        "var s=i.getAttribute('src');" +
+        "if(!s||/^(?:[a-z][a-z0-9+.-]*:|\\/\\/)/i.test(s))return;" +
+        "var h=s.indexOf('#'),f=h<0?'':s.slice(h),p=h<0?s:s.slice(0,h);" +
+        $"i.setAttribute('src',p+(p.indexOf('?')<0?'?':'&')+'_mdreadReload={resourceVersion}'+f);" +
+        "});</script>";
+
     /// <summary>Gets styles shared by light and dark preview themes.</summary>
     public const string BaseStyles =
         "body{font-family:Segoe UI,Arial,sans-serif;line-height:1.6;" +

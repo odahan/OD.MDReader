@@ -29,6 +29,7 @@ internal partial class MainWindowViewModel : ObservableObject
     private bool _isDirty;
     private bool _isLoadingDocument;
     private bool _isPreviewReady;
+    private long _previewResourceVersion;
 
     [ObservableProperty]
     private string _markdownText = string.Empty;
@@ -523,7 +524,7 @@ internal partial class MainWindowViewModel : ObservableObject
             StatusText = isReload
                 ? string.Format(AppText.ReloadedStatusFormat, fullPath)
                 : fullPath;
-            RenderPreview();
+            RenderPreview(forceResourceRefresh: isReload);
         }
         catch (Exception exception) when (
             exception is IOException
@@ -613,15 +614,19 @@ internal partial class MainWindowViewModel : ObservableObject
         }
     }
 
-    private void RenderPreview()
+    private void RenderPreview(bool forceResourceRefresh = false)
     {
         if (_isPreviewReady)
         {
-            PreviewHtml = BuildHtml(includePreviewBridge: true);
+            PreviewHtml = BuildHtml(
+                includePreviewBridge: true,
+                forceResourceRefresh: forceResourceRefresh);
         }
     }
 
-    private string BuildHtml(bool includePreviewBridge)
+    private string BuildHtml(
+        bool includePreviewBridge,
+        bool forceResourceRefresh = false)
     {
         var title = WebUtility.HtmlEncode(
             Path.GetFileNameWithoutExtension(_filePath)
@@ -632,6 +637,9 @@ internal partial class MainWindowViewModel : ObservableObject
         var script = HtmlTemplates.InternalAnchorScript
             + (includePreviewBridge
                 ? HtmlTemplates.ClickInterceptionScript
+                : string.Empty)
+            + (forceResourceRefresh
+                ? HtmlTemplates.CreateResourceReloadScript(++_previewResourceVersion)
                 : string.Empty);
 
         return HtmlTemplates.BuildDocument(

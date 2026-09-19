@@ -59,7 +59,9 @@ public sealed class MainWindowViewModelFileTests
         var context = new ViewModelTestContext();
         context.Dialogs.OpenPath = documentPath;
         var viewModel = context.CreateViewModel();
+        viewModel.InitializePreview();
         viewModel.OpenDocumentCommand.Execute(null);
+        var initialPreview = viewModel.PreviewHtml;
         File.WriteAllText(documentPath, "Reloaded");
 
         viewModel.ReloadDocumentCommand.Execute(null);
@@ -68,6 +70,8 @@ public sealed class MainWindowViewModelFileTests
         Assert.Equal(
             string.Format(AppText.ReloadedStatusFormat, Path.GetFullPath(documentPath)),
             viewModel.StatusText);
+        Assert.NotEqual(initialPreview, viewModel.PreviewHtml);
+        Assert.Contains("_mdreadReload=1", viewModel.PreviewHtml);
     }
 
     [Fact]
