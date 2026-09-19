@@ -43,6 +43,9 @@ internal partial class MainWindowViewModel : ObservableObject
     private string _previewHtml = string.Empty;
 
     [ObservableProperty]
+    private string? _previewResourceRoot;
+
+    [ObservableProperty]
     private bool _isDarkTheme;
 
     [ObservableProperty]
@@ -220,6 +223,7 @@ internal partial class MainWindowViewModel : ObservableObject
 
         SetDocumentText(string.Empty);
         _filePath = null;
+        PreviewResourceRoot = null;
         _isDirty = false;
         WindowTitle = AppText.UntitledWindowTitle;
         StatusText = AppText.NewDocumentStatus;
@@ -497,6 +501,7 @@ internal partial class MainWindowViewModel : ObservableObject
             var fullPath = Path.GetFullPath(path);
             SetDocumentText(File.ReadAllText(fullPath));
             _filePath = fullPath;
+            PreviewResourceRoot = Path.GetPathRoot(fullPath);
             _isDirty = false;
             RememberFile(fullPath);
             WindowTitle = string.Format(
@@ -559,6 +564,7 @@ internal partial class MainWindowViewModel : ObservableObject
         }
 
         _filePath = fullPath;
+        PreviewResourceRoot = Path.GetPathRoot(fullPath);
         _isDirty = false;
         RememberFile(_filePath);
         WindowTitle = string.Format(
@@ -635,10 +641,23 @@ internal partial class MainWindowViewModel : ObservableObject
 
         var directoryPath = directory.TrimEnd(Path.DirectorySeparatorChar)
             + Path.DirectorySeparatorChar;
-        var directoryUri = new Uri(directoryPath);
+        var root = Path.GetPathRoot(directoryPath);
+        if (string.IsNullOrEmpty(root))
+        {
+            return string.Empty;
+        }
+
+        var relativeDirectory = Path.GetRelativePath(root, directoryPath)
+            .Replace(Path.DirectorySeparatorChar, '/')
+            .Trim('/');
+        var baseUri = new Uri(
+            new Uri(WebView2Constants.PreviewVirtualHostAddress),
+            string.IsNullOrEmpty(relativeDirectory)
+                ? string.Empty
+                : relativeDirectory + "/");
         return string.Format(
             HtmlTemplates.BaseTagFormat,
-            WebUtility.HtmlEncode(directoryUri.AbsoluteUri));
+            WebUtility.HtmlEncode(baseUri.AbsoluteUri));
     }
 
     private void OpenLocalFile(string path)

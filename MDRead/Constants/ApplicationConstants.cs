@@ -52,6 +52,13 @@ internal static class WebView2Constants
     /// <summary>Gets the WebView2 user data folder name.</summary>
     public const string UserDataFolderName = "WebView2";
 
+    /// <summary>Gets the virtual HTTPS host used to serve Markdown resources from disk.</summary>
+    public const string PreviewVirtualHostName = "mdread-preview.invalid";
+
+    /// <summary>Gets the base address of the virtual host used by the preview.</summary>
+    public const string PreviewVirtualHostAddress =
+        "https://" + PreviewVirtualHostName + "/";
+
     /// <summary>Gets the official Microsoft download page for WebView2.</summary>
     public const string DownloadUrl = "https://developer.microsoft.com/microsoft-edge/webview2/consumer/";
 }

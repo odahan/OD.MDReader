@@ -18,6 +18,7 @@ public partial class MainWindow : Window, IEditorTextOperations
 {
     private MainWindowViewModel? _viewModel;
     private bool _isInternalNavigation;
+    private string? _mappedPreviewResourceRoot;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="MainWindow"/> class.
@@ -160,8 +161,43 @@ public partial class MainWindow : Window, IEditorTextOperations
             return;
         }
 
+        ConfigurePreviewResourceMapping(ViewModel.PreviewResourceRoot);
         _isInternalNavigation = true;
         PreviewBrowser.NavigateToString(html);
+    }
+
+    /// <summary>
+    /// Maps the current document volume to an isolated virtual host so that HTML
+    /// supplied through <c>NavigateToString</c> can load its local resources.
+    /// </summary>
+    /// <param name="resourceRoot">The root directory containing the current document.</param>
+    private void ConfigurePreviewResourceMapping(string? resourceRoot)
+    {
+        if (string.IsNullOrEmpty(resourceRoot))
+        {
+            if (_mappedPreviewResourceRoot is not null)
+            {
+                PreviewBrowser.CoreWebView2!.ClearVirtualHostNameToFolderMapping(
+                    WebView2Constants.PreviewVirtualHostName);
+                _mappedPreviewResourceRoot = null;
+            }
+
+            return;
+        }
+
+        if (string.Equals(
+                resourceRoot,
+                _mappedPreviewResourceRoot,
+            StringComparison.OrdinalIgnoreCase))
+        {
+            return;
+        }
+
+        PreviewBrowser.CoreWebView2!.SetVirtualHostNameToFolderMapping(
+            WebView2Constants.PreviewVirtualHostName,
+            resourceRoot,
+            CoreWebView2HostResourceAccessKind.DenyCors);
+        _mappedPreviewResourceRoot = resourceRoot;
     }
 
     private async Task SynchronizeHtmlPreviewAsync()

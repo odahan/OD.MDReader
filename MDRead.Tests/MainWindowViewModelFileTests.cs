@@ -51,6 +51,35 @@ public sealed class MainWindowViewModelFileTests
     }
 
     [Fact]
+    public void OpenDocument_UsesVirtualHostBaseForRelativeResources()
+    {
+        using var temporaryDirectory = new TemporaryDirectory();
+        var chapterDirectory = temporaryDirectory.GetPath("Manuscript");
+        Directory.CreateDirectory(chapterDirectory);
+        var documentPath = Path.Combine(chapterDirectory, "chapter.md");
+        File.WriteAllText(documentPath, "![Figure](../Illustrations/figure.svg)");
+        var context = new ViewModelTestContext();
+        context.Dialogs.OpenPath = documentPath;
+        var viewModel = context.CreateViewModel();
+
+        viewModel.InitializePreview();
+        viewModel.OpenDocumentCommand.Execute(null);
+
+        Assert.Equal(Path.GetPathRoot(documentPath), viewModel.PreviewResourceRoot);
+        var root = Path.GetPathRoot(documentPath)!;
+        var relativeDirectory = Path.GetRelativePath(root, chapterDirectory)
+            .Replace(Path.DirectorySeparatorChar, '/')
+            .Trim('/');
+        var expectedBaseUri = new Uri(
+            new Uri(WebView2Constants.PreviewVirtualHostAddress),
+            relativeDirectory + "/");
+        Assert.Contains(
+            $"<base href=\"{expectedBaseUri.AbsoluteUri}\">",
+            viewModel.PreviewHtml);
+        Assert.Contains("src=\"../Illustrations/figure.svg\"", viewModel.PreviewHtml);
+    }
+
+    [Fact]
     public void OpenDroppedFile_IgnoresUnsupportedFiles()
     {
         using var temporaryDirectory = new TemporaryDirectory();
