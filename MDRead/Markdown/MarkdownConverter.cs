@@ -18,11 +18,22 @@ internal static class MarkdownConverter
     /// <returns>The generated HTML fragment.</returns>
     public static string ToHtml(string markdown)
     {
+        return Markdig.Markdown.ToHtml(Parse(markdown), Pipeline);
+    }
+
+    /// <summary>
+    /// Renders the preview with offsets into the original Markdown source.
+    /// </summary>
+    public static string ToPreviewHtml(string markdown) =>
+        MarkdownTextSynchronizer.RenderPreview(Parse(markdown), Pipeline, markdown);
+
+    private static MarkdownDocument Parse(string markdown)
+    {
         ArgumentNullException.ThrowIfNull(markdown);
 
         var document = Markdig.Markdown.Parse(markdown, Pipeline);
         SanitizeLinks(document);
-        return Markdig.Markdown.ToHtml(document, Pipeline);
+        return document;
     }
 
     /// <summary>
@@ -67,6 +78,7 @@ internal static class MarkdownConverter
     private static MarkdownPipeline CreatePipeline()
     {
         var builder = new MarkdownPipelineBuilder()
+            .UsePreciseSourceLocation()
             .UsePipeTables()
             .UseGridTables()
             .UseTaskLists()

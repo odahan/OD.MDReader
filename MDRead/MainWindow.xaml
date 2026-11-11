@@ -80,10 +80,6 @@
                 <MenuItem Header="{x:Static constants:UiText.ReloadMenuItem}"
                           Command="{Binding ReloadDocumentCommand}" />
                 <Separator />
-                <MenuItem Header="{x:Static constants:UiText.EditModeMenuItem}"
-                          IsCheckable="True"
-                          IsChecked="{Binding IsEditMode, Mode=TwoWay}" />
-                <Separator />
                 <MenuItem Header="{x:Static constants:UiText.LightThemeMenuItem}"
                           IsCheckable="True"
                           Command="{Binding UseLightThemeCommand}">
@@ -120,23 +116,69 @@
                        Text="{Binding StatusText}" />
         </StatusBar>
 
-        <Grid x:Name="MainGrid"
-              Background="{DynamicResource {x:Static constants:ThemeResourceKeys.WindowBackground}}">
-            <Grid.RowDefinitions>
-                <RowDefinition x:Name="EditorRow"
-                               Height="{x:Static constants:UiLayoutConstants.CollapsedRowHeight}" />
-                <RowDefinition x:Name="SplitterRow"
-                               Height="{x:Static constants:UiLayoutConstants.CollapsedRowHeight}" />
-                <RowDefinition Height="*" />
-            </Grid.RowDefinitions>
+        <TabControl SelectedIndex="0"
+                    Background="{DynamicResource {x:Static constants:ThemeResourceKeys.WindowBackground}}"
+                    BorderBrush="{DynamicResource {x:Static constants:ThemeResourceKeys.MenuBorder}}">
+            <TabControl.Template>                <ControlTemplate TargetType="TabControl">                    <DockPanel Background="{TemplateBinding Background}"                               KeyboardNavigation.TabNavigation="Local">                        <Border DockPanel.Dock="Top"                                Background="{DynamicResource {x:Static constants:ThemeResourceKeys.MenuBackground}}"                                BorderBrush="{TemplateBinding BorderBrush}"                                BorderThickness="0,0,0,1">                            <TabPanel IsItemsHost="True"                                      KeyboardNavigation.TabIndex="1" />                        </Border>                        <ContentPresenter x:Name="PART_SelectedContentHost"                                          ContentSource="SelectedContent" />                    </DockPanel>                </ControlTemplate>            </TabControl.Template>            <TabControl.Resources>
+                <Style TargetType="TabItem">
+                    <Setter Property="Foreground"
+                            Value="{DynamicResource {x:Static constants:ThemeResourceKeys.MenuForeground}}" />
+                    <Setter Property="Background"
+                            Value="{DynamicResource {x:Static constants:ThemeResourceKeys.MenuBackground}}" />
+                    <Setter Property="Template">
+                        <Setter.Value>
+                            <ControlTemplate TargetType="TabItem">
+                                <Border Background="{TemplateBinding Background}"
+                                        BorderBrush="{DynamicResource {x:Static constants:ThemeResourceKeys.MenuBorder}}"
+                                        BorderThickness="1"
+                                        Padding="12,5">
+                                    <ContentPresenter ContentSource="Header"
+                                                      RecognizesAccessKey="True" />
+                                </Border>
+                            </ControlTemplate>
+                        </Setter.Value>
+                    </Setter>
+                    <Style.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter Property="Background"
+                                    Value="{DynamicResource {x:Static constants:ThemeResourceKeys.MenuHover}}" />
+                        </Trigger>
+                        <Trigger Property="IsSelected" Value="True">
+                            <Setter Property="Background"
+                                    Value="{DynamicResource {x:Static constants:ThemeResourceKeys.SelectedTabBackground}}" />
+                            <Setter Property="Foreground"
+                                    Value="White" />
+                            <Setter Property="FontWeight" Value="SemiBold" />
+                        </Trigger>
+                    </Style.Triggers>
+                </Style>
+            </TabControl.Resources>
 
-            <Border x:Name="EditorPanel"
-                    Grid.Row="0"
-                    Visibility="Collapsed"
-                    BorderBrush="{DynamicResource {x:Static constants:ThemeResourceKeys.MenuBorder}}"
-                    BorderThickness="{x:Static constants:UiLayoutConstants.EditorBorderThickness}">
+
+            <TabItem x:Name="HtmlTab"
+                     Header="{x:Static constants:UiText.HtmlTabHeader}">
                 <DockPanel>
                     <ToolBar DockPanel.Dock="Top">
+                        <Button Content="{x:Static constants:UiText.SynchronizeMarkdownButton}"
+                                Command="{Binding SynchronizeMarkdownCommand}"
+                                ToolTip="{x:Static constants:UiText.SynchronizeMarkdownToolTip}" />
+                    </ToolBar>
+
+                    <wv2:WebView2 x:Name="PreviewBrowser"
+                                  AllowDrop="True"
+                                  AllowExternalDrop="True" />
+                </DockPanel>
+            </TabItem>
+
+            <TabItem x:Name="MarkdownTab"
+                     Header="{x:Static constants:UiText.MarkdownTabHeader}"
+                     IsSelected="{Binding IsMarkdownTabSelected, Mode=OneWayToSource}">
+                <DockPanel>
+                    <ToolBar DockPanel.Dock="Top">
+                        <Button Content="{x:Static constants:UiText.SynchronizeHtmlButton}"
+                                Command="{Binding SynchronizeHtmlCommand}"
+                                ToolTip="{x:Static constants:UiText.SynchronizeHtmlToolTip}" />
+                        <Separator />
                         <Button Content="{x:Static constants:UiText.Heading1Button}"
                                 Command="{Binding ApplyHeading1Command}"
                                 ToolTip="{x:Static constants:UiText.Heading1ToolTip}" />
@@ -194,13 +236,6 @@
                                 Command="{Binding InsertHorizontalRuleCommand}"
                                 ToolTip="{x:Static constants:UiText.RuleToolTip}" />
                         <Separator />
-                        <Button Content="{x:Static constants:UiText.SynchronizeHtmlButton}"
-                                Command="{Binding SynchronizeHtmlCommand}"
-                                ToolTip="{x:Static constants:UiText.SynchronizeHtmlToolTip}" />
-                        <Button Content="{x:Static constants:UiText.SynchronizeMarkdownButton}"
-                                Command="{Binding SynchronizeMarkdownCommand}"
-                                ToolTip="{x:Static constants:UiText.SynchronizeMarkdownToolTip}" />
-                        <Separator />
                         <ToggleButton Content="{x:Static constants:UiText.WordWrapButton}"
                                       IsChecked="{Binding IsWordWrapEnabled, Mode=TwoWay}"
                                       Style="{StaticResource {x:Static constants:UiResourceKeys.WordWrapToggleStyle}}"
@@ -235,23 +270,7 @@
                         </TextBox.Resources>
                     </TextBox>
                 </DockPanel>
-            </Border>
-
-            <GridSplitter x:Name="EditorSplitter"
-                          Grid.Row="1"
-                          Height="{x:Static constants:UiLayoutConstants.SplitterHeight}"
-                          HorizontalAlignment="Stretch"
-                          Visibility="Collapsed"
-                          Background="{DynamicResource {x:Static constants:ThemeResourceKeys.MenuBorder}}"
-                          ResizeDirection="Rows"
-                          ResizeBehavior="PreviousAndNext"
-                          DragCompleted="EditorSplitter_DragCompleted" />
-
-            <Border Grid.Row="2">
-                <wv2:WebView2 x:Name="PreviewBrowser"
-                              AllowDrop="True"
-                              AllowExternalDrop="True" />
-            </Border>
-        </Grid>
+            </TabItem>
+        </TabControl>
     </DockPanel>
 </Window>

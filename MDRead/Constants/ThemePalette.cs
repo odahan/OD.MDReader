@@ -109,6 +109,9 @@ public static class ThemeResourceKeys
     /// <summary>Gets the chrome-highlight brush key.</summary>
     public const string MenuHover = "MenuHoverBrush";
 
+    /// <summary>Gets the selected tab background brush key.</summary>
+    public const string SelectedTabBackground = "SelectedTabBackgroundBrush";
+
     /// <summary>Gets the chrome-border brush key.</summary>
     public const string MenuBorder = "MenuBorderBrush";
 

@@ -7,7 +7,7 @@ using System.ComponentModel;
 using System.IO;
 using System.Text.Json;
 using System.Windows;
-using System.Windows.Controls.Primitives;
+using System.Windows.Threading;
 
 namespace MDRead;
 
@@ -19,6 +19,9 @@ public partial class MainWindow : Window, IEditorTextOperations
     private MainWindowViewModel? _viewModel;
     private bool _isInternalNavigation;
     private string? _mappedPreviewResourceRoot;
+    private TaskCompletionSource<bool>? _previewReady;
+    private ulong? _previewNavigationId;
+    private MarkdownSynchronizationHighlight? _markdownHighlight;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="MainWindow"/> class.
@@ -47,7 +50,6 @@ public partial class MainWindow : Window, IEditorTextOperations
         viewModel.CloseRequested += ViewModel_CloseRequested;
 
         ApplyTheme(ThemePalette.Select(viewModel.IsDarkTheme));
-        ApplyEditMode(viewModel.IsEditMode);
         _ = InitializePreviewAsync();
     }
 
@@ -92,7 +94,13 @@ public partial class MainWindow : Window, IEditorTextOperations
     }
 
     /// <inheritdoc />
-    public void FocusEditor() => MarkdownEditor.Focus();
+    public void FocusEditor() => Dispatcher.BeginInvoke(DispatcherPriority.Loaded, () =>
+    {
+        if (MarkdownTab.IsSelected)
+        {
+            MarkdownEditor.Focus();
+        }
+    });
 
     /// <inheritdoc />
     public void SynchronizeHtmlPreview() => _ = SynchronizeHtmlPreviewAsync();
@@ -117,6 +125,8 @@ public partial class MainWindow : Window, IEditorTextOperations
         }
 
         PreviewBrowser.CoreWebView2.NavigationStarting += Preview_NavigationStarting;
+        PreviewBrowser.CoreWebView2.DOMContentLoaded += Preview_DOMContentLoaded;
+        PreviewBrowser.CoreWebView2.NavigationCompleted += Preview_NavigationCompleted;
         PreviewBrowser.CoreWebView2.NewWindowRequested += Preview_NewWindowRequested;
         PreviewBrowser.CoreWebView2.WebMessageReceived += Preview_WebMessageReceived;
         ViewModel.InitializePreview();
@@ -147,10 +157,6 @@ public partial class MainWindow : Window, IEditorTextOperations
             case nameof(MainWindowViewModel.IsDarkTheme):
                 ApplyTheme(ThemePalette.Select(ViewModel.IsDarkTheme));
                 break;
-
-            case nameof(MainWindowViewModel.IsEditMode):
-                ApplyEditMode(ViewModel.IsEditMode);
-                break;
         }
     }
 
@@ -162,6 +168,9 @@ public partial class MainWindow : Window, IEditorTextOperations
         }
 
         ConfigurePreviewResourceMapping(ViewModel.PreviewResourceRoot);
+        _previewReady?.TrySetResult(false);
+        _previewReady = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+        _previewNavigationId = null;
         _isInternalNavigation = true;
         PreviewBrowser.NavigateToString(html);
     }
@@ -202,17 +211,10 @@ public partial class MainWindow : Window, IEditorTextOperations
 
     private async Task SynchronizeHtmlPreviewAsync()
     {
-        var anchor = MarkdownTextSynchronizer.CreateAnchor(
-            MarkdownEditor.Text,
-            MarkdownEditor.SelectionStart);
-        if (anchor is null)
-        {
-            ViewModel.StatusText = AppText.HtmlSynchronizationNotFoundStatus;
-            return;
-        }
-
         var preview = PreviewBrowser.CoreWebView2;
-        if (preview is null)
+        var source = MarkdownEditor.Text;
+        var line = MarkdownTextSynchronizer.GetLineRange(source, MarkdownEditor.CaretIndex);
+        if (preview is null || line.Start == line.End)
         {
             ViewModel.StatusText = AppText.HtmlSynchronizationNotFoundStatus;
             return;
@@ -220,8 +222,22 @@ public partial class MainWindow : Window, IEditorTextOperations
 
         try
         {
+            ViewModel.RefreshPreviewForSynchronization();
+            var revision = ViewModel.PreviewRevision;
+            var ready = _previewReady?.Task;
+            HtmlTab.SetCurrentValue(System.Windows.Controls.TabItem.IsSelectedProperty, true);
+            UpdateLayout();
+
+            if (ready is null || !await ready.WaitAsync(TimeSpan.FromSeconds(5))
+                || !HtmlTab.IsSelected || ViewModel.PreviewRevision != revision
+                || ViewModel.PreviewSource != source || MarkdownEditor.Text != source)
+            {
+                ViewModel.StatusText = AppText.HtmlSynchronizationNotFoundStatus;
+                return;
+            }
+
             var result = await preview.ExecuteScriptAsync(
-                BuildFindHtmlBlockScript(anchor));
+                $"window.mdreadSync?.highlightLine({revision}, {line.Start}, {line.End}) ?? false");
             ViewModel.StatusText = JsonSerializer.Deserialize<bool>(result)
                 ? AppText.HtmlSynchronizedStatus
                 : AppText.HtmlSynchronizationNotFoundStatus;
@@ -235,91 +251,54 @@ public partial class MainWindow : Window, IEditorTextOperations
     private async Task SynchronizeMarkdownEditorAsync()
     {
         var preview = PreviewBrowser.CoreWebView2;
-        if (preview is null)
+        var source = MarkdownEditor.Text;
+        var revision = ViewModel.PreviewRevision;
+        if (preview is null || _previewReady?.Task is not { IsCompletedSuccessfully: true, Result: true }
+            || ViewModel.PreviewSource != source)
         {
-            ViewModel.StatusText = AppText.MarkdownSynchronizationNotFoundStatus;
+            ViewModel.StatusText = AppText.PreviewSelectionUnavailableStatus;
             return;
         }
 
         try
         {
-            var result = await preview.ExecuteScriptAsync(BuildVisibleHtmlAnchorScript());
-            var anchorJson = JsonSerializer.Deserialize<string>(result);
-            var anchor = anchorJson is null
-                ? null
-                : JsonSerializer.Deserialize<TextSynchronizationAnchor>(anchorJson);
-            var block = anchor is null
-                ? null
-                : MarkdownTextSynchronizer.FindMatchingBlock(
-                    MarkdownEditor.Text,
-                    anchor);
+            var result = await preview.ExecuteScriptAsync(
+                $"window.mdreadSync?.readSelection({revision}) ?? null");
+            var range = JsonSerializer.Deserialize<MarkdownSourceRange?>(result);
+            if (!HtmlTab.IsSelected || ViewModel.PreviewRevision != revision
+                || MarkdownEditor.Text != source)
+            {
+                ViewModel.StatusText = AppText.PreviewSelectionUnavailableStatus;
+                return;
+            }
 
-            if (anchor is null || block is null)
+            if (range is not { } match || match.Start < 0 || match.End <= match.Start
+                || match.End > source.Length)
             {
                 ViewModel.StatusText = AppText.MarkdownSynchronizationNotFoundStatus;
                 return;
             }
 
-            ScrollMarkdownEditorTo(block, anchor.BlockProgress);
+            MarkdownTab.SetCurrentValue(System.Windows.Controls.TabItem.IsSelectedProperty, true);
+            UpdateLayout();
+            MarkdownEditor.Focus();
+            MarkdownEditor.Select(match.Start, 0);
+            MarkdownEditor.ScrollToLine(MarkdownEditor.GetLineIndexFromCharacterIndex(match.Start));
+            MarkdownEditor.UpdateLayout();
+            var caretBounds = MarkdownEditor.GetRectFromCharacterIndex(match.Start);
+            if (!caretBounds.IsEmpty && (caretBounds.X < 0 || caretBounds.X >= MarkdownEditor.ViewportWidth))
+            {
+                MarkdownEditor.ScrollToHorizontalOffset(
+                    Math.Max(0, MarkdownEditor.HorizontalOffset + caretBounds.X - MarkdownEditor.ViewportWidth / 3));
+            }
+
+            _markdownHighlight?.Remove();
+            _markdownHighlight = MarkdownSynchronizationHighlight.Show(MarkdownEditor, match);
             ViewModel.StatusText = AppText.MarkdownSynchronizedStatus;
         }
         catch (Exception)
         {
             ViewModel.StatusText = AppText.MarkdownSynchronizationNotFoundStatus;
-        }
-    }
-
-    private static string BuildFindHtmlBlockScript(
-        TextSynchronizationAnchor anchor) =>
-        string.Concat(
-            "(()=>{const a=",
-            JsonSerializer.Serialize(anchor),
-            ";const n=v=>v.normalize('NFD').toLowerCase().replace(/\\p{M}/gu,'').replace(/[^\\p{L}\\p{N}]/gu,'');",
-            "const e=[...document.querySelectorAll('h1,h2,h3,h4,h5,h6,p,li,pre,blockquote,tr')]",
-            ".map(x=>({element:x,text:n(x.innerText)})).filter(x=>x.text);const m=e.map((x,i)=>({x,i})).filter(x=>x.x.text===a.Text);",
-            "if(!m.length)return false;const s=q=>(a.Previous&&e[q.i-1].text===a.Previous?1:0)+(a.Next&&e[q.i+1].text===a.Next?1:0);",
-            "const h=Math.max(...m.map(s));const b=m.filter(q=>s(q)===h);if(m.length>1&&(h===0||b.length!==1))return false;",
-            "b[0].x.element.scrollIntoView({block:'center'});return true;})()");
-
-    private static string BuildVisibleHtmlAnchorScript() =>
-        "(()=>{const n=v=>v.normalize('NFD').toLowerCase().replace(/\\p{M}/gu,'').replace(/[^\\p{L}\\p{N}]/gu,'');"
-        + "const y=window.innerHeight/3;const e=[...document.querySelectorAll('h1,h2,h3,h4,h5,h6,p,li,pre,blockquote,tr')]"
-        + ".map(x=>({element:x,text:n(x.innerText),distance:Math.abs(((x.getBoundingClientRect().top+x.getBoundingClientRect().bottom)/2)-y)})).filter(x=>x.text);"
-        + "if(!e.length)return null;const q=e.reduce((a,b)=>a.distance<=b.distance?a:b);const i=e.indexOf(q);"
-        + "const r=q.element.getBoundingClientRect();const p=Math.max(0,Math.min(1,(y-r.top)/Math.max(r.height,1)));"
-        + "return JSON.stringify({Text:q.text,Previous:i?e[i-1].text:null,Next:i<e.length-1?e[i+1].text:null,BlockProgress:p});})()";
-
-    private void ScrollMarkdownEditorTo(
-        MarkdownTextBlock block,
-        double blockProgress)
-    {
-        var progress = Math.Clamp(blockProgress, 0, 1);
-        var targetIndex = block.Start + (int)Math.Round(
-            (block.End - block.Start) * progress);
-        targetIndex = Math.Clamp(targetIndex, 0, MarkdownEditor.Text.Length);
-
-        var selectionStart = MarkdownEditor.SelectionStart;
-        var selectionLength = MarkdownEditor.SelectionLength;
-        MarkdownEditor.Select(targetIndex, 0);
-        MarkdownEditor.Focus();
-        MarkdownEditor.UpdateLayout();
-        MarkdownEditor.Select(selectionStart, selectionLength);
-    }
-
-    private void ApplyEditMode(bool isEnabled)
-    {
-        EditorPanel.Visibility = isEnabled ? Visibility.Visible : Visibility.Collapsed;
-        EditorSplitter.Visibility = isEnabled ? Visibility.Visible : Visibility.Collapsed;
-        EditorRow.Height = isEnabled
-            ? new GridLength(ViewModel.EditorHeight)
-            : new GridLength(UiLayoutConstants.CollapsedHeight);
-        SplitterRow.Height = isEnabled
-            ? new GridLength(UiLayoutConstants.SplitterHeight)
-            : new GridLength(UiLayoutConstants.CollapsedHeight);
-
-        if (isEnabled)
-        {
-            MarkdownEditor.Focus();
         }
     }
 
@@ -331,6 +310,7 @@ public partial class MainWindow : Window, IEditorTextOperations
         SetBrush(ThemeResourceKeys.MenuBackground, palette.ChromeBackground);
         SetBrush(ThemeResourceKeys.MenuForeground, palette.ChromeForeground);
         SetBrush(ThemeResourceKeys.MenuHover, palette.ChromeHover);
+        SetBrush(ThemeResourceKeys.SelectedTabBackground, palette.PrimaryButtonBackground);
         SetBrush(ThemeResourceKeys.MenuBorder, palette.ChromeBorder);
         SetBrush(ThemeResourceKeys.DisabledForeground, palette.DisabledForeground);
         SetBrush(ThemeResourceKeys.ScrollTrack, palette.ScrollTrack);
@@ -356,10 +336,27 @@ public partial class MainWindow : Window, IEditorTextOperations
         if (_isInternalNavigation)
         {
             _isInternalNavigation = false;
+            _previewNavigationId = eventArgs.NavigationId;
             return;
         }
 
         eventArgs.Cancel = true;
+    }
+
+    private void Preview_DOMContentLoaded(object? sender, CoreWebView2DOMContentLoadedEventArgs eventArgs)
+    {
+        if (eventArgs.NavigationId == _previewNavigationId)
+        {
+            _previewReady?.TrySetResult(true);
+        }
+    }
+
+    private void Preview_NavigationCompleted(object? sender, CoreWebView2NavigationCompletedEventArgs eventArgs)
+    {
+        if (eventArgs.NavigationId == _previewNavigationId)
+        {
+            _previewReady?.TrySetResult(eventArgs.IsSuccess);
+        }
     }
 
     private void Preview_NewWindowRequested(
@@ -422,14 +419,6 @@ public partial class MainWindow : Window, IEditorTextOperations
         if (_viewModel is not null && !_viewModel.CanClose())
         {
             eventArgs.Cancel = true;
-        }
-    }
-
-    private void EditorSplitter_DragCompleted(object sender, DragCompletedEventArgs eventArgs)
-    {
-        if (ViewModel.IsEditMode)
-        {
-            ViewModel.SaveEditorHeight(EditorPanel.ActualHeight);
         }
     }
 

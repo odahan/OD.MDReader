@@ -20,18 +20,6 @@ public static class UiLayoutConstants
     /// <summary>Gets the minimum window width.</summary>
     public const double MinimumWindowWidth = 700;
 
-    /// <summary>Gets the default editor-pane height.</summary>
-    public const double DefaultEditorHeight = 300;
-
-    /// <summary>Gets the minimum editor-pane height accepted from settings.</summary>
-    public const double MinimumEditorHeight = 80;
-
-    /// <summary>Gets the splitter height.</summary>
-    public const double SplitterHeight = 7;
-
-    /// <summary>Gets the height used for collapsed rows.</summary>
-    public const double CollapsedHeight = 0;
-
     /// <summary>Gets the editor font size.</summary>
     public const double EditorFontSize = 14;
 
@@ -42,18 +30,11 @@ public static class UiLayoutConstants
     public static readonly FontFamily EditorFontFamily =
         new(EditorFontFamilyName);
 
-    /// <summary>Gets the row height used by collapsed editor rows.</summary>
-    public static readonly GridLength CollapsedRowHeight =
-        new(CollapsedHeight);
-
     /// <summary>Gets the editor content padding.</summary>
     public static readonly Thickness EditorPadding = new(12);
 
     /// <summary>Gets the status-bar border thickness.</summary>
     public static readonly Thickness StatusBarBorderThickness = new(1, 1, 0, 0);
-
-    /// <summary>Gets the editor border thickness.</summary>
-    public static readonly Thickness EditorBorderThickness = new(0, 0, 0, 1);
 
     /// <summary>Gets the minimum themed-dialog width.</summary>
     internal const double DialogMinimumWidth = 390;

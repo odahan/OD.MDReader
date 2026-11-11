@@ -10,7 +10,7 @@ namespace MDRead.Tests;
 public sealed class MainWindowViewModelStateTests
 {
     [Fact]
-    public void Constructor_AlwaysStartsInReadMode()
+    public void Constructor_AlwaysStartsOnHtmlTab()
     {
         var context = new ViewModelTestContext
         {
@@ -18,8 +18,7 @@ public sealed class MainWindowViewModelStateTests
             {
                 Settings = new UserSettings
                 {
-                    IsDark = false,
-                    EditorHeight = 245
+                    IsDark = false
                 }
             }
         };
@@ -27,9 +26,8 @@ public sealed class MainWindowViewModelStateTests
         var viewModel = context.CreateViewModel();
 
         Assert.False(viewModel.IsDarkTheme);
-        Assert.False(viewModel.IsEditMode);
+        Assert.False(viewModel.IsMarkdownTabSelected);
         Assert.False(viewModel.IsWordWrapEnabled);
-        Assert.Equal(245, viewModel.EditorHeight);
         Assert.Equal(AppText.UntitledWindowTitle, viewModel.WindowTitle);
         Assert.Equal(AppText.ReadyStatus, viewModel.StatusText);
         Assert.True(viewModel.ExitPreviewCommand.CanExecute(null));
@@ -50,33 +48,6 @@ public sealed class MainWindowViewModelStateTests
         var viewModel = context.CreateViewModel(argument);
 
         Assert.Equal(expectedDarkTheme, viewModel.IsDarkTheme);
-    }
-
-    [Theory]
-    [InlineData(0)]
-    [InlineData(80)]
-    [InlineData(-10)]
-    public void EditorHeight_InvalidSettingUsesDefault(double configuredHeight)
-    {
-        var context = new ViewModelTestContext();
-        context.Settings.Settings.EditorHeight = configuredHeight;
-
-        var viewModel = context.CreateViewModel();
-
-        Assert.Equal(UiLayoutConstants.DefaultEditorHeight, viewModel.EditorHeight);
-    }
-
-    [Fact]
-    public void SaveEditorHeight_UpdatesAndPersistsSetting()
-    {
-        var context = new ViewModelTestContext();
-        var viewModel = context.CreateViewModel();
-
-        viewModel.SaveEditorHeight(321);
-
-        Assert.Equal(321, viewModel.EditorHeight);
-        Assert.Equal(321, context.Settings.Settings.EditorHeight);
-        Assert.Equal(1, context.Settings.SaveCount);
     }
 
     [Fact]
@@ -111,13 +82,13 @@ public sealed class MainWindowViewModelStateTests
     }
 
     [Fact]
-    public void EditMode_FocusesAndUpdatesEscapeCommandWithoutPersisting()
+    public void SelectingMarkdownTab_FocusesAndUpdatesEscapeCommandWithoutPersisting()
     {
         var context = new ViewModelTestContext();
         var viewModel = context.CreateViewModel();
         Assert.True(viewModel.ExitPreviewCommand.CanExecute(null));
 
-        viewModel.IsEditMode = true;
+        viewModel.IsMarkdownTabSelected = true;
 
         Assert.Equal(0, context.Settings.SaveCount);
         Assert.Equal(1, context.Editor.FocusRequestCount);
@@ -166,7 +137,8 @@ public sealed class MainWindowViewModelStateTests
 
         viewModel.InitializePreview();
 
-        Assert.Contains("<h1 id=\"hello\">Hello</h1>", viewModel.PreviewHtml);
+        Assert.Contains("<h1 id=\"hello\" data-md-start=\"0\" data-md-end=\"7\">", viewModel.PreviewHtml);
+        Assert.Contains("data-md-text=\"exact\">Hello</span>", viewModel.PreviewHtml);
         Assert.Contains(HtmlTemplates.InternalAnchorScript, viewModel.PreviewHtml);
         Assert.Contains(HtmlTemplates.ClickInterceptionScript, viewModel.PreviewHtml);
         Assert.Contains("<html lang=\"en\">", viewModel.PreviewHtml);
@@ -183,8 +155,26 @@ public sealed class MainWindowViewModelStateTests
         viewModel.MarkdownText = "Second";
         await Task.Delay(ApplicationConstants.PreviewRenderDelayMilliseconds + 150, TestContext.Current.CancellationToken);
 
-        Assert.Contains("<p>Second</p>", viewModel.PreviewHtml);
-        Assert.DoesNotContain("<p>First</p>", viewModel.PreviewHtml);
+        Assert.Equal("Second", viewModel.PreviewSource);
+        Assert.Contains(">Second</span>", viewModel.PreviewHtml);
+        Assert.DoesNotContain(">First</span>", viewModel.PreviewHtml);
+    }
+
+    [Fact]
+    public async Task RefreshPreviewForSynchronization_UsesTheCurrentSourceWithoutRenavigating()
+    {
+        var viewModel = new ViewModelTestContext().CreateViewModel();
+        viewModel.InitializePreview();
+        viewModel.MarkdownText = "New source";
+
+        viewModel.RefreshPreviewForSynchronization();
+
+        var revision = viewModel.PreviewRevision;
+        Assert.Equal("New source", viewModel.PreviewSource);
+        Assert.Contains(">New source</span>", viewModel.PreviewHtml);
+
+        await Task.Delay(ApplicationConstants.PreviewRenderDelayMilliseconds + 150, TestContext.Current.CancellationToken);
+        Assert.Equal(revision, viewModel.PreviewRevision);
     }
 
     [Fact]

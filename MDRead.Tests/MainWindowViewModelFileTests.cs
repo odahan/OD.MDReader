@@ -156,7 +156,7 @@ public sealed class MainWindowViewModelFileTests
         viewModel.InitializePreview();
 
         Assert.Equal("Startup", viewModel.MarkdownText);
-        Assert.Contains("<p>Startup</p>", viewModel.PreviewHtml);
+        Assert.Contains(">Startup</span>", viewModel.PreviewHtml);
     }
 
     [Fact]

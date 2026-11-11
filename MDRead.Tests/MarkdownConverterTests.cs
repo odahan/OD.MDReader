@@ -7,6 +7,46 @@ namespace MDRead.Tests;
 /// </summary>
 public sealed class MarkdownConverterTests
 {
+    [Theory]
+    [InlineData("L'agent s'appuie sur l'analyse d'une vulnérabilité.")]
+    [InlineData("L’agent s’appuie sur l’analyse d’une vulnérabilité.")]
+    public void ToHtml_PreservesFrenchApostrophes(string markdown)
+    {
+        var html = MarkdownConverter.ToHtml(markdown);
+
+        Assert.Equal($"<p>{markdown}</p>", html.Trim());
+    }
+
+    [Fact]
+    public void ToHtml_PreservesLiteralBackslashNInProse()
+    {
+        var html = MarkdownConverter.ToHtml("L'agent corrige le code.\\n\nCette automatisation aide l'équipe.");
+
+        Assert.Equal(
+            "<p>L'agent corrige le code.\\n\nCette automatisation aide l'équipe.</p>",
+            html.Trim());
+    }
+
+    [Fact]
+    public void ToHtml_SeparatesParagraphsWithActualBlankLines()
+    {
+        var html = MarkdownConverter.ToHtml("L'agent corrige le code.\n\nCette automatisation aide l'équipe.");
+
+        Assert.Equal(
+            "<p>L'agent corrige le code.</p>\n<p>Cette automatisation aide l'équipe.</p>",
+            html.Trim());
+    }
+
+    [Fact]
+    public void ToHtml_ConvertsTrailingBackslashIntoHardLineBreak()
+    {
+        var html = MarkdownConverter.ToHtml("L'agent corrige le code.\\\nCette automatisation aide l'équipe.");
+
+        Assert.Equal(
+            "<p>L'agent corrige le code.<br />\nCette automatisation aide l'équipe.</p>",
+            html.Trim());
+    }
+
     [Fact]
     public void ToHtml_EncodesUnsafeTextAndPreservesParagraphLines()
     {

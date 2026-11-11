@@ -50,7 +50,7 @@ internal partial class MainWindowViewModel : ObservableObject
     private bool _isDarkTheme;
 
     [ObservableProperty]
-    private bool _isEditMode;
+    private bool _isMarkdownTabSelected;
 
     [ObservableProperty]
     private bool _isWordWrapEnabled;
@@ -96,13 +96,22 @@ internal partial class MainWindowViewModel : ObservableObject
     /// </summary>
     public ObservableCollection<RecentFileEntry> RecentFiles { get; } = [];
 
+    /// <summary>Gets the Markdown snapshot used by the latest generated preview.</summary>
+    internal string? PreviewSource { get; private set; }
+
+    /// <summary>Gets the revision identifying the latest generated preview.</summary>
+    internal long PreviewRevision { get; private set; }
+
     /// <summary>
-    /// Gets the valid editor height restored from user settings.
+    /// Flushes any pending editor changes before synchronizing to the HTML preview.
     /// </summary>
-    public double EditorHeight =>
-        _settings.EditorHeight > UiLayoutConstants.MinimumEditorHeight
-            ? _settings.EditorHeight
-            : UiLayoutConstants.DefaultEditorHeight;
+    internal void RefreshPreviewForSynchronization()
+    {
+        if (PreviewSource != MarkdownText)
+        {
+            RenderPreview();
+        }
+    }
 
     /// <summary>
     /// Gets whether the supported Markdown extensions are currently associated with this executable.
@@ -151,17 +160,6 @@ internal partial class MainWindowViewModel : ObservableObject
         }
 
         return ResolvePendingChanges(AppText.ConfirmSaveBeforeClosing);
-    }
-
-    /// <summary>
-    /// Persists the current editor-pane height.
-    /// </summary>
-    /// <param name="height">The height in device-independent units.</param>
-    public void SaveEditorHeight(double height)
-    {
-        _settings.EditorHeight = height;
-        SaveSettings();
-        OnPropertyChanged(nameof(EditorHeight));
     }
 
     /// <summary>
@@ -445,7 +443,7 @@ internal partial class MainWindowViewModel : ObservableObject
         SchedulePreviewRender();
     }
 
-    partial void OnIsEditModeChanged(bool value)
+    partial void OnIsMarkdownTabSelectedChanged(bool value)
     {
         ExitPreviewCommand.NotifyCanExecuteChanged();
 
@@ -455,7 +453,7 @@ internal partial class MainWindowViewModel : ObservableObject
         }
     }
 
-    private bool CanExitPreview() => !IsEditMode;
+    private bool CanExitPreview() => !IsMarkdownTabSelected;
 
     private static bool ResolveInitialTheme(
         bool configuredDarkTheme,
@@ -606,6 +604,7 @@ internal partial class MainWindowViewModel : ObservableObject
             await Task.Delay(
                 ApplicationConstants.PreviewRenderDelayMilliseconds,
                 cancellationToken);
+            cancellationToken.ThrowIfCancellationRequested();
             RenderPreview();
         }
         catch (OperationCanceledException)
@@ -618,6 +617,9 @@ internal partial class MainWindowViewModel : ObservableObject
     {
         if (_isPreviewReady)
         {
+            _renderCancellation?.Cancel();
+            PreviewSource = MarkdownText;
+            PreviewRevision++;
             PreviewHtml = BuildHtml(
                 includePreviewBridge: true,
                 forceResourceRefresh: forceResourceRefresh);
@@ -636,7 +638,7 @@ internal partial class MainWindowViewModel : ObservableObject
             : HtmlTemplates.LightStyles;
         var script = HtmlTemplates.InternalAnchorScript
             + (includePreviewBridge
-                ? HtmlTemplates.ClickInterceptionScript
+                ? HtmlTemplates.ClickInterceptionScript + PreviewSynchronization.CreateScript(PreviewRevision)
                 : string.Empty)
             + (forceResourceRefresh
                 ? HtmlTemplates.CreateResourceReloadScript(++_previewResourceVersion)
@@ -645,8 +647,10 @@ internal partial class MainWindowViewModel : ObservableObject
         return HtmlTemplates.BuildDocument(
             BuildBaseTag(),
             title,
-            styles,
-            MarkdownConverter.ToHtml(MarkdownText),
+            includePreviewBridge ? styles + PreviewSynchronization.Styles : styles,
+            includePreviewBridge
+                ? MarkdownConverter.ToPreviewHtml(MarkdownText)
+                : MarkdownConverter.ToHtml(MarkdownText),
             script);
     }
 

@@ -1,382 +1,156 @@
+using Markdig;
+using Markdig.Renderers;
+using Markdig.Renderers.Html;
+using Markdig.Syntax;
+using Markdig.Syntax.Inlines;
 using System.Globalization;
-using System.Net;
-using System.Text;
+using System.IO;
 
 namespace MDRead.Markdown;
 
 /// <summary>
-/// Locates equivalent rendered-text blocks in Markdown source and HTML preview content.
+/// Associates rendered preview elements with their original Markdown character ranges.
 /// </summary>
 internal static class MarkdownTextSynchronizer
 {
     /// <summary>
-    /// Creates an anchor for the Markdown block containing a caret position.
+    /// Gets the physical source line at the caret, independent of editor word wrapping.
     /// </summary>
-    /// <param name="markdown">The complete Markdown source.</param>
-    /// <param name="caretPosition">The zero-based caret position in the source.</param>
-    /// <returns>A normalized text anchor, or <see langword="null"/> when none is available.</returns>
-    public static TextSynchronizationAnchor? CreateAnchor(
-        string markdown,
-        int caretPosition)
+    public static MarkdownSourceRange GetLineRange(string source, int caret)
     {
-        ArgumentNullException.ThrowIfNull(markdown);
-
-        var blocks = CreateComparableBlocks(markdown);
-        var matchingBlockIndex = blocks.FindIndex(
-            block => caretPosition >= block.Block.Start
-                && caretPosition <= block.Block.End);
-
-        if (matchingBlockIndex < 0)
+        caret = Math.Clamp(caret, 0, source.Length);
+        if (caret > 0 && caret < source.Length
+            && source[caret - 1] == '\r' && source[caret] == '\n')
         {
-            return null;
+            caret--;
         }
 
-        return CreateAnchor(blocks, matchingBlockIndex);
+        var start = caret;
+        while (start > 0 && source[start - 1] is not ('\r' or '\n'))
+        {
+            start--;
+        }
+
+        var end = caret;
+        while (end < source.Length && source[end] is not ('\r' or '\n'))
+        {
+            end++;
+        }
+
+        return new MarkdownSourceRange(start, end);
     }
 
     /// <summary>
-    /// Finds the Markdown block that best matches a rendered-text anchor.
+    /// Renders preview HTML with source ranges on blocks and selectable inline content.
     /// </summary>
-    /// <param name="markdown">The complete Markdown source.</param>
-    /// <param name="anchor">The normalized anchor extracted from the preview.</param>
-    /// <returns>The matching Markdown block, or <see langword="null"/> when the result is absent or ambiguous.</returns>
-    public static MarkdownTextBlock? FindMatchingBlock(
-        string markdown,
-        TextSynchronizationAnchor anchor)
+    public static string RenderPreview(
+        MarkdownDocument document,
+        MarkdownPipeline pipeline,
+        string source)
     {
-        ArgumentNullException.ThrowIfNull(markdown);
-        ArgumentNullException.ThrowIfNull(anchor);
-
-        var blocks = CreateComparableBlocks(markdown);
-        var matches = blocks
-            .Select((block, index) => new { Block = block, Index = index })
-            .Where(candidate => candidate.Block.NormalizedText == anchor.Text)
-            .ToList();
-
-        if (matches.Count == 1)
+        using var writer = new StringWriter(CultureInfo.InvariantCulture);
+        var renderer = new HtmlRenderer(writer);
+        pipeline.Setup(renderer);
+        renderer.ObjectRenderers.Replace<CodeBlockRenderer>(new MappedCodeBlockRenderer(source));
+        renderer.ObjectWriteBefore += (_, item) =>
         {
-            return matches[0].Block.Block;
-        }
+            if (!IsValidRange(item.Span, source))
+            {
+                return;
+            }
 
-        if (matches.Count == 0)
+            if (item is Block and not MarkdownDocument or LinkInline { IsImage: true })
+            {
+                AddRange(item.GetAttributes(), item.Span);
+            }
+            else if (renderer.EnableHtmlForInline && IsTextRun(item))
+            {
+                var span = item.Span;
+                var isExact = item is LiteralInline literal
+                    && source.AsSpan(span.Start, span.Length).SequenceEqual(literal.Content.AsSpan());
+                if (item is CodeInline code && span.Length > 2 * code.DelimiterCount)
+                {
+                    var contentOffset = span.Start + code.DelimiterCount;
+                    var content = source.AsSpan(contentOffset, span.Length - 2 * code.DelimiterCount);
+                    var offset = content.IndexOf(code.ContentSpan, StringComparison.Ordinal);
+                    if (offset >= 0 && !code.ContentSpan.IsEmpty)
+                    {
+                        span = new SourceSpan(contentOffset + offset, contentOffset + offset + code.ContentSpan.Length - 1);
+                        isExact = true;
+                    }
+                }
+
+                OpenTextRun(renderer, span, isExact);
+            }
+        };
+        renderer.ObjectWriteAfter += (_, item) =>
         {
-            return null;
-        }
+            if (renderer.EnableHtmlForInline && IsTextRun(item) && IsValidRange(item.Span, source))
+            {
+                renderer.Write("</span>");
+            }
+        };
 
-        var highestScore = matches.Max(candidate => GetContextScore(
-            blocks,
-            candidate.Index,
-            anchor));
-        var bestMatches = matches
-            .Where(candidate => GetContextScore(blocks, candidate.Index, anchor) == highestScore)
-            .ToList();
+        renderer.Render(document);
+        return writer.ToString();
+    }
 
-        return highestScore > 0 && bestMatches.Count == 1
-            ? bestMatches[0].Block.Block
-            : null;
+    private static bool IsTextRun(MarkdownObject item) =>
+        item is LiteralInline or CodeInline or HtmlEntityInline or AutolinkInline;
+
+    private static bool IsValidRange(SourceSpan span, string source) =>
+        span.Start >= 0 && span.End >= span.Start && span.End < source.Length;
+
+    private static void AddRange(HtmlAttributes attributes, SourceSpan span)
+    {
+        attributes.AddProperty("data-md-start", span.Start.ToString(CultureInfo.InvariantCulture));
+        attributes.AddProperty("data-md-end", (span.End + 1).ToString(CultureInfo.InvariantCulture));
+    }
+
+    private static void OpenTextRun(HtmlRenderer renderer, SourceSpan span, bool isExact)
+    {
+        var attributes = new HtmlAttributes();
+        AddRange(attributes, span);
+        attributes.AddProperty("data-md-text", isExact ? "exact" : "token");
+        renderer.Write("<span").WriteAttributes(attributes).Write(">");
     }
 
     /// <summary>
-    /// Converts Markdown into a compact key representing its visible rendered text.
+    /// Maps each rendered code line separately while preserving its whitespace and language class.
     /// </summary>
-    /// <param name="markdown">The Markdown fragment to normalize.</param>
-    /// <returns>A key containing only lower-case letters and digits.</returns>
-    public static string NormalizeMarkdown(string markdown)
+    private sealed class MappedCodeBlockRenderer(string source) : HtmlObjectRenderer<CodeBlock>
     {
-        ArgumentNullException.ThrowIfNull(markdown);
-        return NormalizeVisibleText(ExtractTextFromHtml(MarkdownConverter.ToHtml(markdown)));
-    }
-
-    /// <summary>
-    /// Converts visible text into a compact, formatting-insensitive comparison key.
-    /// </summary>
-    /// <param name="text">The visible text to normalize.</param>
-    /// <returns>A key containing only lower-case letters and digits.</returns>
-    public static string NormalizeVisibleText(string text)
-    {
-        ArgumentNullException.ThrowIfNull(text);
-
-        var normalized = text.Normalize(NormalizationForm.FormD).ToLowerInvariant();
-        var builder = new StringBuilder(normalized.Length);
-
-        foreach (var character in normalized)
+        /// <inheritdoc />
+        protected override void Write(HtmlRenderer renderer, CodeBlock block)
         {
-            if (IsLetterOrNumber(character))
+            renderer.EnsureLine();
+            renderer.Write("<pre><code").WriteAttributes(block).Write(">");
+
+            for (var index = 0; index < block.Lines.Count; index++)
             {
-                builder.Append(character);
-            }
-        }
-
-        return builder.ToString();
-    }
-
-    private static List<ComparableMarkdownBlock> CreateComparableBlocks(string markdown) =>
-        GetBlocks(markdown)
-            .Select(block => new ComparableMarkdownBlock(
-                block,
-                NormalizeMarkdown(block.Text)))
-            .Where(block => !string.IsNullOrEmpty(block.NormalizedText))
-            .ToList();
-
-    private static TextSynchronizationAnchor? CreateAnchor(
-        IReadOnlyList<ComparableMarkdownBlock> blocks,
-        int index)
-    {
-        var block = blocks[index];
-        return string.IsNullOrEmpty(block.NormalizedText)
-            ? null
-            : new TextSynchronizationAnchor(
-                block.NormalizedText,
-                GetPreviousText(blocks, index),
-                GetNextText(blocks, index));
-    }
-
-    private static int GetContextScore(
-        IReadOnlyList<ComparableMarkdownBlock> blocks,
-        int index,
-        TextSynchronizationAnchor anchor)
-    {
-        var score = 0;
-        if (anchor.Previous is not null && anchor.Previous == GetPreviousText(blocks, index))
-        {
-            score++;
-        }
-
-        if (anchor.Next is not null && anchor.Next == GetNextText(blocks, index))
-        {
-            score++;
-        }
-
-        return score;
-    }
-
-    private static string? GetPreviousText(
-        IReadOnlyList<ComparableMarkdownBlock> blocks,
-        int index) => index > 0 ? blocks[index - 1].NormalizedText : null;
-
-    private static string? GetNextText(
-        IReadOnlyList<ComparableMarkdownBlock> blocks,
-        int index) => index < blocks.Count - 1 ? blocks[index + 1].NormalizedText : null;
-
-    private static bool IsLetterOrNumber(char character) =>
-        CharUnicodeInfo.GetUnicodeCategory(character) is UnicodeCategory.UppercaseLetter
-            or UnicodeCategory.LowercaseLetter
-            or UnicodeCategory.TitlecaseLetter
-            or UnicodeCategory.ModifierLetter
-            or UnicodeCategory.OtherLetter
-            or UnicodeCategory.DecimalDigitNumber
-            or UnicodeCategory.LetterNumber
-            or UnicodeCategory.OtherNumber;
-
-    private static string ExtractTextFromHtml(string html)
-    {
-        var text = new StringBuilder(html.Length);
-        var index = 0;
-
-        while (index < html.Length)
-        {
-            if (html[index] == '<')
-            {
-                index = SkipHtmlTag(html, index + 1);
-                continue;
-            }
-
-            if (html[index] == '&')
-            {
-                var entityEnd = html.IndexOf(';', index + 1);
-                if (entityEnd >= 0)
+                var slice = block.Lines.Lines[index].Slice;
+                var span = new SourceSpan(slice.Start, slice.End);
+                var isMapped = ReferenceEquals(slice.Text, source) && IsValidRange(span, source);
+                if (isMapped)
                 {
-                    text.Append(WebUtility.HtmlDecode(html[index..(entityEnd + 1)]));
-                    index = entityEnd + 1;
-                    continue;
-                }
-            }
-
-            text.Append(html[index]);
-            index++;
-        }
-
-        return text.ToString();
-    }
-
-    private static int SkipHtmlTag(string html, int index)
-    {
-        char? quote = null;
-        while (index < html.Length)
-        {
-            var character = html[index++];
-            if (quote is not null)
-            {
-                if (character == quote)
-                {
-                    quote = null;
+                    OpenTextRun(renderer, span, isExact: true);
                 }
 
-                continue;
+                renderer.WriteEscape(slice);
+                if (isMapped)
+                {
+                    renderer.Write("</span>");
+                }
+
+                renderer.WriteLine();
             }
 
-            if (character is '\'' or '"')
-            {
-                quote = character;
-            }
-            else if (character == '>')
-            {
-                break;
-            }
+            renderer.WriteLine("</code></pre>");
         }
-
-        return index;
     }
-
-    private static IReadOnlyList<MarkdownTextBlock> GetBlocks(string markdown)
-    {
-        var lines = GetLines(markdown);
-        var blocks = new List<MarkdownTextBlock>();
-
-        for (var index = 0; index < lines.Count;)
-        {
-            if (string.IsNullOrWhiteSpace(lines[index].Text))
-            {
-                index++;
-                continue;
-            }
-
-            var startIndex = index;
-            if (IsFence(lines[index].Text, out var fence))
-            {
-                index++;
-                while (index < lines.Count && !IsClosingFence(lines[index].Text, fence))
-                {
-                    index++;
-                }
-
-                if (index < lines.Count)
-                {
-                    index++;
-                }
-            }
-            else if (IsHeading(lines[index].Text)
-                || IsListItem(lines[index].Text)
-                || IsTableRow(lines[index].Text))
-            {
-                index++;
-            }
-            else if (IsQuote(lines[index].Text))
-            {
-                while (index < lines.Count && IsQuote(lines[index].Text))
-                {
-                    index++;
-                }
-            }
-            else
-            {
-                index++;
-                while (index < lines.Count
-                    && !string.IsNullOrWhiteSpace(lines[index].Text)
-                    && !IsFence(lines[index].Text, out _)
-                    && !IsHeading(lines[index].Text)
-                    && !IsListItem(lines[index].Text)
-                    && !IsQuote(lines[index].Text)
-                    && !IsTableRow(lines[index].Text))
-                {
-                    index++;
-                }
-            }
-
-            var start = lines[startIndex].Start;
-            var end = lines[index - 1].End;
-            blocks.Add(new MarkdownTextBlock(
-                start,
-                end,
-                startIndex,
-                markdown[start..end]));
-        }
-
-        return blocks;
-    }
-
-    private static List<MarkdownLine> GetLines(string markdown)
-    {
-        var lines = new List<MarkdownLine>();
-        var start = 0;
-
-        while (start <= markdown.Length)
-        {
-            var lineFeedIndex = markdown.IndexOf('\n', start);
-            var fullEnd = lineFeedIndex >= 0 ? lineFeedIndex + 1 : markdown.Length;
-            var end = lineFeedIndex >= 0 ? lineFeedIndex : markdown.Length;
-            if (end > start && markdown[end - 1] == '\r')
-            {
-                end--;
-            }
-
-            lines.Add(new MarkdownLine(start, end, markdown[start..end]));
-            if (lineFeedIndex < 0)
-            {
-                break;
-            }
-
-            start = fullEnd;
-        }
-
-        return lines;
-    }
-
-    private static bool IsFence(string line, out string fence)
-    {
-        var trimmed = line.TrimStart();
-        fence = trimmed.StartsWith("```") ? "```"
-            : trimmed.StartsWith("~~~") ? "~~~"
-            : string.Empty;
-        return fence.Length > 0;
-    }
-
-    private static bool IsClosingFence(string line, string fence) =>
-        line.TrimStart().StartsWith(fence, StringComparison.Ordinal);
-
-    private static bool IsHeading(string line) =>
-        line.TrimStart().StartsWith('#');
-
-    private static bool IsListItem(string line)
-    {
-        var trimmed = line.TrimStart();
-        return trimmed.StartsWith("- ")
-            || trimmed.StartsWith("* ")
-            || trimmed.StartsWith("+ ")
-            || (trimmed.Length > 2
-                && char.IsDigit(trimmed[0])
-                && trimmed.IndexOfAny(['.', ')']) > 0);
-    }
-
-    private static bool IsTableRow(string line) => line.Contains('|');
-
-    private static bool IsQuote(string line) => line.TrimStart().StartsWith('>');
-
-    private sealed record ComparableMarkdownBlock(
-        MarkdownTextBlock Block,
-        string NormalizedText);
-
-    private sealed record MarkdownLine(int Start, int End, string Text);
 }
 
 /// <summary>
-/// Identifies a block by its normalized text and optional immediate context.
+/// Represents a half-open range of UTF-16 positions in the Markdown source.
 /// </summary>
-/// <param name="Text">The normalized text of the block.</param>
-/// <param name="Previous">The normalized text of the preceding block, when available.</param>
-/// <param name="Next">The normalized text of the following block, when available.</param>
-/// <param name="BlockProgress">The relative position within the visible block.</param>
-internal sealed record TextSynchronizationAnchor(
-    string Text,
-    string? Previous,
-    string? Next,
-    double BlockProgress = 0);
-
-/// <summary>
-/// Describes a logical Markdown block and its location in the source editor.
-/// </summary>
-/// <param name="Start">The inclusive character position of the block.</param>
-/// <param name="End">The exclusive character position of the block.</param>
-/// <param name="StartLine">The zero-based source line containing the start of the block.</param>
-/// <param name="Text">The Markdown source contained in the block.</param>
-internal sealed record MarkdownTextBlock(int Start, int End, int StartLine, string Text);
+internal readonly record struct MarkdownSourceRange(int Start, int End);

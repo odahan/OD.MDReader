@@ -3,68 +3,54 @@ using MDRead.Markdown;
 namespace MDRead.Tests;
 
 /// <summary>
-/// Verifies text normalization and source-block matching used by manual synchronization.
+/// Verifies that preview offsets identify the source even when rendered text is repeated or formatted.
 /// </summary>
 public sealed class MarkdownTextSynchronizerTests
 {
-    [Fact]
-    public void NormalizeMarkdown_RemovesFormattingAccentsAndPunctuation()
+    [Theory]
+    [InlineData(0, 0, 3)]
+    [InlineData(4, 0, 3)]
+    [InlineData(6, 5, 11)]
+    [InlineData(12, 12, 12)]
+    [InlineData(17, 13, 17)]
+    public void GetLineRange_UsesPhysicalLines(int caret, int start, int end)
     {
-        var normalized = MarkdownTextSynchronizer.NormalizeMarkdown(
-            "## L'été — c'est **déjà** l'heure !");
-
-        Assert.Equal("letecestdejalheure", normalized);
+        Assert.Equal(new MarkdownSourceRange(start, end),
+            MarkdownTextSynchronizer.GetLineRange("One\r\nSecond\n\nLast", caret));
     }
 
     [Fact]
-    public void CreateAnchor_UsesTheMarkdownBlockAtTheCaret()
+    public void ToPreviewHtml_MapsDuplicateTextToDistinctLines()
     {
-        const string markdown = "# First\n\nSecond **section**.\n\nThird section.";
-        var caret = markdown.IndexOf("section", StringComparison.Ordinal);
+        const string source = "Same\r\nSame\r\n\r\n- **Same**";
+        var html = MarkdownConverter.ToPreviewHtml(source);
 
-        var anchor = MarkdownTextSynchronizer.CreateAnchor(markdown, caret);
-
-        Assert.NotNull(anchor);
-        Assert.Equal("secondsection", anchor.Text);
-        Assert.Equal("first", anchor.Previous);
-        Assert.Equal("thirdsection", anchor.Next);
+        Assert.Contains("data-md-start=\"0\" data-md-end=\"4\" data-md-text=\"exact\">Same", html);
+        Assert.Contains("data-md-start=\"6\" data-md-end=\"10\" data-md-text=\"exact\">Same", html);
+        Assert.Contains("data-md-start=\"18\" data-md-end=\"22\" data-md-text=\"exact\">Same", html);
     }
 
     [Fact]
-    public void FindMatchingBlock_UsesNeighbouringTextToResolveDuplicates()
+    public void ToPreviewHtml_MapsEachFencedCodeLineAndPreservesEscaping()
     {
-        const string markdown = "# First\n\nRepeated text.\n\n# Second\n\nRepeated text.\n\nFinal text.";
-        var anchor = new TextSynchronizationAnchor(
-            "repeatedtext",
-            "second",
-            "finaltext");
+        const string source = "```xml\r\n<x>\r\n<x>\r\n```";
+        var html = MarkdownConverter.ToPreviewHtml(source);
 
-        var block = MarkdownTextSynchronizer.FindMatchingBlock(markdown, anchor);
-
-        Assert.NotNull(block);
-        Assert.Equal(markdown.IndexOf("Repeated text.", 20, StringComparison.Ordinal), block.Start);
+        Assert.Contains("class=\"language-xml\"", html);
+        Assert.Contains("data-md-start=\"8\" data-md-end=\"11\" data-md-text=\"exact\">&lt;x&gt;", html);
+        Assert.Contains("data-md-start=\"13\" data-md-end=\"16\" data-md-text=\"exact\">&lt;x&gt;", html);
     }
 
     [Fact]
-    public void FindMatchingBlock_ReturnsNullForAmbiguousTextWithoutContext()
+    public void ToPreviewHtml_MapsFormattedContentWithoutMappingImageAltMarkup()
     {
-        const string markdown = "Repeated text.\n\nRepeated text.";
-        var anchor = new TextSynchronizationAnchor("repeatedtext", null, null);
+        const string source = "**déjà** &amp; `x` ![alt](image.png)";
+        var html = MarkdownConverter.ToPreviewHtml(source);
 
-        var block = MarkdownTextSynchronizer.FindMatchingBlock(markdown, anchor);
-
-        Assert.Null(block);
-    }
-
-    [Fact]
-    public void TextSynchronizationAnchor_PreservesTheVisibleBlockProgress()
-    {
-        var anchor = new TextSynchronizationAnchor(
-            "section",
-            "previous",
-            "next",
-            0.6);
-
-        Assert.Equal(0.6, anchor.BlockProgress);
+        Assert.Contains("data-md-start=\"2\" data-md-end=\"6\" data-md-text=\"exact\">déjà", html);
+        Assert.Contains("data-md-start=\"9\" data-md-end=\"14\" data-md-text=\"token\">&amp;", html);
+        Assert.Contains("data-md-start=\"16\" data-md-end=\"17\" data-md-text=\"exact\"><code>x</code>", html);
+        Assert.Contains("alt=\"alt\"", html);
+        Assert.DoesNotContain("data-md-", MarkdownConverter.ToHtml(source));
     }
 }

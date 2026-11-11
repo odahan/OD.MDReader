@@ -24,12 +24,12 @@ internal interface IEditorTextOperations
     void FocusEditor();
 
     /// <summary>
-    /// Synchronizes the HTML preview with the Markdown block at the current caret position.
+    /// Highlights the rendered content of the Markdown line at the current caret position.
     /// </summary>
     void SynchronizeHtmlPreview();
 
     /// <summary>
-    /// Synchronizes the Markdown editor with the rendered HTML block currently in view.
+    /// Highlights the Markdown source of the current selection in the HTML preview.
     /// </summary>
     void SynchronizeMarkdownEditor();
 }

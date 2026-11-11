@@ -63,11 +63,15 @@ internal static class AppText
 
     /// <summary>Gets the status message when no matching HTML block is found.</summary>
     public const string HtmlSynchronizationNotFoundStatus =
-        "No unambiguous matching HTML block was found.";
+        "No preview location was found for the current Markdown line.";
 
     /// <summary>Gets the status message when no matching Markdown block is found.</summary>
     public const string MarkdownSynchronizationNotFoundStatus =
-        "No unambiguous matching Markdown block was found.";
+        "Select text in the HTML preview to find its Markdown source.";
+
+    /// <summary>Gets the status message when the preview is still updating.</summary>
+    public const string PreviewSelectionUnavailableStatus =
+        "Wait for the preview to update, then select the text again.";
 
     /// <summary>Gets the status format displayed after saving.</summary>
     public const string SavedStatusFormat = "Saved: {0}";

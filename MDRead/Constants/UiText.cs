@@ -38,8 +38,11 @@ public static class UiText
     /// <summary>Gets the View menu header.</summary>
     public const string ViewMenu = "_View";
 
-    /// <summary>Gets the edit-mode command header.</summary>
-    public const string EditModeMenuItem = "_Edit mode";
+    /// <summary>Gets the Markdown source tab header.</summary>
+    public const string MarkdownTabHeader = "Markdown";
+
+    /// <summary>Gets the rendered HTML tab header.</summary>
+    public const string HtmlTabHeader = "HTML";
 
     /// <summary>Gets the Reload command header.</summary>
     public const string ReloadMenuItem = "_Reload";
@@ -177,8 +180,8 @@ public static class UiText
     public const string WordWrapToolTip = "Toggle word wrap";
 
     /// <summary>Gets the HTML synchronization button tooltip.</summary>
-    public const string SynchronizeHtmlToolTip = "Show the current Markdown block in the HTML preview";
+    public const string SynchronizeHtmlToolTip = "Highlight the current Markdown line in the HTML preview";
 
     /// <summary>Gets the Markdown synchronization button tooltip.</summary>
-    public const string SynchronizeMarkdownToolTip = "Show the visible HTML block in the Markdown editor";
+    public const string SynchronizeMarkdownToolTip = "Highlight the source of the text selected in the HTML preview";
 }
