@@ -2,6 +2,7 @@ using MDRead.Constants;
 using MDRead.Models;
 using MDRead.Services;
 using System.Text;
+using System.Text.RegularExpressions;
 
 namespace MDRead.Tests;
 
@@ -93,11 +94,13 @@ public sealed class MainWindowViewModelFileTests
         var context = new ViewModelTestContext();
         context.Dialogs.SavePath = documentPath;
         var viewModel = context.CreateViewModel();
+        viewModel.InitializePreview();
         viewModel.MarkdownText = "Saved document";
 
         viewModel.SaveCommand.Execute(null);
 
         Assert.True(viewModel.ReloadDocumentCommand.CanExecute(null));
+        Assert.Contains(WebView2Constants.PreviewVirtualHostAddress, viewModel.PreviewHtml);
     }
 
     [Fact]
@@ -120,12 +123,10 @@ public sealed class MainWindowViewModelFileTests
         var relativeDirectory = Path.GetRelativePath(root, chapterDirectory)
             .Replace(Path.DirectorySeparatorChar, '/')
             .Trim('/');
-        var expectedBaseUri = new Uri(
-            new Uri(WebView2Constants.PreviewVirtualHostAddress),
-            relativeDirectory + "/");
-        Assert.Contains(
-            $"<base href=\"{expectedBaseUri.AbsoluteUri}\">",
-            viewModel.PreviewHtml);
+        var baseUrl = Regex.Match(
+            viewModel.PreviewHtml, "<base href=\"([^\"]+)\">").Groups[1].Value;
+        Assert.StartsWith(WebView2Constants.PreviewVirtualHostAddress, baseUrl);
+        Assert.Equal('/' + relativeDirectory + '/', Uri.UnescapeDataString(new Uri(baseUrl).AbsolutePath));
         Assert.Contains("src=\"../Illustrations/figure.svg\"", viewModel.PreviewHtml);
     }
 

@@ -187,6 +187,17 @@ internal partial class MainWindowViewModel : ObservableObject
             return;
         }
 
+        if (uri.Host.Equals(WebView2Constants.PreviewVirtualHostName, StringComparison.OrdinalIgnoreCase))
+        {
+            var path = GetPreviewResourcePath(uri);
+            if (path is not null)
+            {
+                OpenLocalFile(path);
+            }
+
+            return;
+        }
+
         if (uri.Scheme == Uri.UriSchemeHttp
             || uri.Scheme == Uri.UriSchemeHttps
             || uri.Scheme == Uri.UriSchemeMailto)
@@ -577,6 +588,7 @@ internal partial class MainWindowViewModel : ObservableObject
             return false;
         }
 
+        var pathChanged = !string.Equals(_filePath, fullPath, StringComparison.Ordinal);
         _filePath = fullPath;
         ReloadDocumentCommand.NotifyCanExecuteChanged();
         PreviewResourceRoot = Path.GetPathRoot(fullPath);
@@ -586,6 +598,11 @@ internal partial class MainWindowViewModel : ObservableObject
             AppText.WindowTitleFormat,
             Path.GetFileName(_filePath));
         StatusText = string.Format(AppText.SavedStatusFormat, _filePath);
+        if (pathChanged)
+        {
+            RenderPreview();
+        }
+
         return true;
     }
 
@@ -675,9 +692,11 @@ internal partial class MainWindowViewModel : ObservableObject
             return string.Empty;
         }
 
-        var relativeDirectory = Path.GetRelativePath(root, directoryPath)
-            .Replace(Path.DirectorySeparatorChar, '/')
-            .Trim('/');
+        var relativeDirectory = string.Join(
+            '/',
+            directoryPath[root.Length..]
+                .Split(Path.DirectorySeparatorChar, StringSplitOptions.RemoveEmptyEntries)
+                .Select(Uri.EscapeDataString));
         var baseUri = new Uri(
             new Uri(WebView2Constants.PreviewVirtualHostAddress),
             string.IsNullOrEmpty(relativeDirectory)
@@ -688,11 +707,45 @@ internal partial class MainWindowViewModel : ObservableObject
             WebUtility.HtmlEncode(baseUri.AbsoluteUri));
     }
 
+    /// <summary>
+    /// Resolves a virtual preview URL against the volume mapped by WebView2.
+    /// </summary>
+    private string? GetPreviewResourcePath(Uri uri)
+    {
+        if (PreviewResourceRoot is not { } root
+            || uri.Scheme != Uri.UriSchemeHttps
+            || !uri.IsDefaultPort
+            || uri.UserInfo.Length != 0)
+        {
+            return null;
+        }
+
+        var invalidCharacters = Path.GetInvalidFileNameChars();
+        var segments = uri.AbsolutePath
+            .Split('/', StringSplitOptions.RemoveEmptyEntries)
+            .Select(Uri.UnescapeDataString)
+            .ToArray();
+        if (segments.Length == 0 || segments.Any(segment =>
+                segment.EndsWith('.') || segment.EndsWith(' ')
+                || segment.IndexOfAny(invalidCharacters) >= 0))
+        {
+            return null;
+        }
+
+        return Path.Combine(root, string.Join(Path.DirectorySeparatorChar, segments));
+    }
+
     private void OpenLocalFile(string path)
     {
         // Anchors resolved against the base directory do not refer to real files.
         if (!File.Exists(path))
         {
+            return;
+        }
+
+        if (DocumentConstants.IsMarkdownFilePath(path))
+        {
+            OpenFile(path);
             return;
         }
 

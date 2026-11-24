@@ -364,16 +364,7 @@ public partial class MainWindow : Window, IEditorTextOperations
         CoreWebView2NewWindowRequestedEventArgs eventArgs)
     {
         eventArgs.Handled = true;
-        Dispatcher.BeginInvoke(() =>
-        {
-            if (TryGetMarkdownPathFromWebTarget(eventArgs.Uri, out var markdownPath))
-            {
-                ViewModel.OpenDroppedFile(markdownPath);
-                return;
-            }
-
-            ViewModel.OpenPreviewTarget(eventArgs.Uri);
-        });
+        Dispatcher.BeginInvoke(() => ViewModel.OpenPreviewTarget(eventArgs.Uri));
     }
 
     private void Preview_WebMessageReceived(
