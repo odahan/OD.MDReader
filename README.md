@@ -25,6 +25,9 @@ MDRead requires the [Microsoft Edge WebView2 Runtime](https://developer.microsof
 Download and run `MDRead.exe` from the [GitHub releases](https://github.com/odahan/OD.MDReader/releases).
 
 - Use **File → Open** to select an existing Markdown file.
+- Use **View → Back** or **Alt+Left Arrow** to reopen the previous file in the
+  current session. Back opens a file at its linked heading when an anchor was
+  recorded for that visit.
 - Start MDRead with a file path to open it directly from a command line:
 
 ```text
@@ -97,7 +100,11 @@ especially in code examples and paths.
   preview and exported HTML.
 - Web and email links are passed to Windows only after confirmation in MDRead.
 - Relative local links are resolved from the directory containing the open
-  Markdown file. This includes links to other `.md` and `.markdown` documents.
+  Markdown file. A link such as `[Details](guide.md#details)` opens the linked
+  Markdown document and scrolls to its heading in the MDRead preview.
+- The preview and command line accept Windows drive references such as
+  `/E:/docs/guide.md#details` and file URIs such as
+  `file:///E:/docs/guide.md#details`.
 - Potentially dangerous local file types are blocked before Windows can open
   them.
 

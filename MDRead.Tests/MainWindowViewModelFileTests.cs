@@ -220,6 +220,89 @@ public sealed class MainWindowViewModelFileTests
     }
 
     [Fact]
+    public void GoBack_FollowsSessionVisitsAndRestoresLinkedHeading()
+    {
+        using var temporaryDirectory = new TemporaryDirectory();
+        var first = temporaryDirectory.GetPath("first.md");
+        var second = temporaryDirectory.GetPath("second.md");
+        var third = temporaryDirectory.GetPath("third.md");
+        File.WriteAllText(first, "First");
+        File.WriteAllText(second, "## Details");
+        File.WriteAllText(third, "Third");
+        var context = new ViewModelTestContext();
+        var viewModel = context.CreateViewModel(first);
+        viewModel.InitializePreview();
+
+        Assert.False(viewModel.GoBackCommand.CanExecute(null));
+        viewModel.OpenPreviewTarget(new Uri(second).AbsoluteUri + "#details");
+        viewModel.ReloadDocumentCommand.Execute(null);
+        viewModel.OpenDroppedFile(third);
+
+        viewModel.GoBackCommand.Execute(null);
+
+        Assert.Equal(second, viewModel.StatusText);
+        Assert.Contains(HtmlTemplates.CreateInitialAnchorScript("#details"), viewModel.PreviewHtml);
+        viewModel.GoBackCommand.Execute(null);
+        Assert.Equal(first, viewModel.StatusText);
+        Assert.False(viewModel.GoBackCommand.CanExecute(null));
+
+        var newSession = context.CreateViewModel(first);
+        newSession.InitializePreview();
+        Assert.False(newSession.GoBackCommand.CanExecute(null));
+    }
+
+    [Fact]
+    public void GoBack_CancelingDirtyDocumentRetainsThePreviousVisit()
+    {
+        using var temporaryDirectory = new TemporaryDirectory();
+        var first = temporaryDirectory.GetPath("first.md");
+        var second = temporaryDirectory.GetPath("second.md");
+        File.WriteAllText(first, "First");
+        File.WriteAllText(second, "Second");
+        var context = new ViewModelTestContext();
+        var viewModel = context.CreateViewModel(first);
+        viewModel.InitializePreview();
+        viewModel.OpenDroppedFile(second);
+        viewModel.MarkdownText = "Unsaved";
+        context.Dialogs.EnqueueSaveConfirmation(DialogChoice.Cancel);
+
+        viewModel.GoBackCommand.Execute(null);
+
+        Assert.Equal("Unsaved", viewModel.MarkdownText);
+        Assert.True(viewModel.GoBackCommand.CanExecute(null));
+
+        context.Dialogs.EnqueueSaveConfirmation(DialogChoice.Yes);
+        viewModel.GoBackCommand.Execute(null);
+        Assert.Equal("Unsaved", File.ReadAllText(second));
+        Assert.Equal(first, viewModel.StatusText);
+        Assert.False(viewModel.GoBackCommand.CanExecute(null));
+    }
+
+    [Fact]
+    public void GoBack_ReportsDeletedFileAndKeepsEarlierVisitsReachable()
+    {
+        using var temporaryDirectory = new TemporaryDirectory();
+        var first = temporaryDirectory.GetPath("first.md");
+        var second = temporaryDirectory.GetPath("second.md");
+        File.WriteAllText(first, "First");
+        File.WriteAllText(second, "Second");
+        var context = new ViewModelTestContext();
+        var viewModel = context.CreateViewModel(first);
+        viewModel.InitializePreview();
+        viewModel.OpenDroppedFile(second);
+        viewModel.NewDocumentCommand.Execute(null);
+        File.Delete(second);
+
+        viewModel.GoBackCommand.Execute(null);
+
+        Assert.Equal(AppText.NewDocumentStatus, viewModel.StatusText);
+        Assert.Contains(second, Assert.Single(context.Dialogs.Messages).Message);
+        viewModel.GoBackCommand.Execute(null);
+        Assert.Equal(first, viewModel.StatusText);
+        Assert.False(viewModel.GoBackCommand.CanExecute(null));
+    }
+
+    [Fact]
     public void Save_NewDocumentWritesUtf8WithoutByteOrderMark()
     {
         using var temporaryDirectory = new TemporaryDirectory();

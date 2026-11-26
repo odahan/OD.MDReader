@@ -24,8 +24,10 @@ internal partial class MainWindowViewModel : ObservableObject
     private readonly ISettingsService _settingsService;
     private readonly UserSettings _settings;
     private readonly string[] _startupArguments;
+    private readonly Stack<(string Path, string Fragment)> _backHistory = new();
     private CancellationTokenSource? _renderCancellation;
     private string? _filePath;
+    private string _fileFragment = string.Empty;
     private bool _isDirty;
     private bool _isLoadingDocument;
     private bool _isPreviewReady;
@@ -136,7 +138,7 @@ internal partial class MainWindowViewModel : ObservableObject
             return;
         }
 
-        OpenFile(startupPath);
+        OpenStartupTarget(startupPath);
     }
 
     /// <summary>
@@ -179,10 +181,10 @@ internal partial class MainWindowViewModel : ObservableObject
     /// <summary>
     /// Validates and opens a target selected in the HTML preview.
     /// </summary>
-    /// <param name="target">The absolute target supplied by WebView2.</param>
+    /// <param name="target">The resolved link or drive-qualified reference supplied by WebView2.</param>
     public void OpenPreviewTarget(string target)
     {
-        if (!Uri.TryCreate(target, UriKind.Absolute, out var uri))
+        if (!Uri.TryCreate(NormalizeDriveReference(target), UriKind.Absolute, out var uri))
         {
             return;
         }
@@ -192,7 +194,7 @@ internal partial class MainWindowViewModel : ObservableObject
             var path = GetPreviewResourcePath(uri);
             if (path is not null)
             {
-                OpenLocalFile(path);
+                OpenLocalFile(path, uri.Fragment);
             }
 
             return;
@@ -214,7 +216,7 @@ internal partial class MainWindowViewModel : ObservableObject
 
         if (uri.IsFile)
         {
-            OpenLocalFile(uri.LocalPath);
+            OpenLocalFile(uri.LocalPath, uri.Fragment);
             return;
         }
 
@@ -231,9 +233,12 @@ internal partial class MainWindowViewModel : ObservableObject
             return;
         }
 
+        RememberCurrentVisit();
         SetDocumentText(string.Empty);
         _filePath = null;
+        _fileFragment = string.Empty;
         ReloadDocumentCommand.NotifyCanExecuteChanged();
+        GoBackCommand.NotifyCanExecuteChanged();
         PreviewResourceRoot = null;
         _isDirty = false;
         WindowTitle = AppText.UntitledWindowTitle;
@@ -269,12 +274,21 @@ internal partial class MainWindowViewModel : ObservableObject
     [RelayCommand]
     private void SaveAs() => SaveToNewPath();
 
+    [RelayCommand(CanExecute = nameof(CanGoBack))]
+    private void GoBack()
+    {
+        if (_backHistory.TryPeek(out var previous))
+        {
+            OpenFile(previous.Path, fragment: previous.Fragment, fromHistory: true);
+        }
+    }
+
     [RelayCommand(CanExecute = nameof(CanReloadDocument))]
     private void ReloadDocument()
     {
         if (_filePath is not null)
         {
-            OpenFile(_filePath, isReload: true);
+            OpenFile(_filePath, isReload: true, fragment: _fileFragment);
         }
     }
 
@@ -511,29 +525,59 @@ internal partial class MainWindowViewModel : ObservableObject
 
     private bool CanReloadDocument() => _filePath is not null;
 
-    private void OpenFile(string path, bool isReload = false)
+    private bool CanGoBack() => _backHistory.Count > 0;
+
+    /// <summary>Records the open file and its entry anchor before leaving it.</summary>
+    private void RememberCurrentVisit()
+    {
+        if (_filePath is not null)
+        {
+            _backHistory.Push((_filePath, _fileFragment));
+        }
+    }
+
+    /// <summary>Converts a slash-prefixed Windows drive reference into a file URI.</summary>
+    private static string NormalizeDriveReference(string target) =>
+        target.Length >= 4 && target[0] == '/' && char.IsAsciiLetter(target[1])
+            && target[2] == ':' && target[3] == '/'
+            ? "file://" + target
+            : target;
+
+    /// <summary>Opens a command-line path or URI with an optional Markdown fragment.</summary>
+    private void OpenStartupTarget(string target)
+    {
+        var normalized = NormalizeDriveReference(target);
+        if (normalized.StartsWith("file:", StringComparison.OrdinalIgnoreCase)
+            && Uri.TryCreate(normalized, UriKind.Absolute, out var uri) && uri.IsFile)
+        {
+            OpenFile(uri.LocalPath, fragment: uri.Fragment);
+            return;
+        }
+
+        var separator = target.LastIndexOf('#');
+        if (separator > 0 && DocumentConstants.IsMarkdownFilePath(target[..separator])
+            && !File.Exists(target))
+        {
+            OpenFile(target[..separator], fragment: target[separator..]);
+            return;
+        }
+
+        OpenFile(target);
+    }
+
+    private void OpenFile(string path, bool isReload = false, string fragment = "", bool fromHistory = false)
     {
         if (!ConfirmDiscardChanges())
         {
             return;
         }
 
+        string fullPath;
+        string text;
         try
         {
-            var fullPath = Path.GetFullPath(path);
-            SetDocumentText(File.ReadAllText(fullPath));
-            _filePath = fullPath;
-            ReloadDocumentCommand.NotifyCanExecuteChanged();
-            PreviewResourceRoot = Path.GetPathRoot(fullPath);
-            _isDirty = false;
-            RememberFile(fullPath);
-            WindowTitle = string.Format(
-                AppText.WindowTitleFormat,
-                Path.GetFileName(fullPath));
-            StatusText = isReload
-                ? string.Format(AppText.ReloadedStatusFormat, fullPath)
-                : fullPath;
-            RenderPreview(forceResourceRefresh: isReload);
+            fullPath = Path.GetFullPath(path);
+            text = File.ReadAllText(fullPath);
         }
         catch (Exception exception) when (
             exception is IOException
@@ -541,8 +585,40 @@ internal partial class MainWindowViewModel : ObservableObject
             or NotSupportedException
             or ArgumentException)
         {
+            if (fromHistory && exception is FileNotFoundException or DirectoryNotFoundException)
+            {
+                _backHistory.Pop();
+                GoBackCommand.NotifyCanExecuteChanged();
+            }
+
             _dialogService.ShowMessage(exception.Message);
+            return;
         }
+
+        if (fromHistory)
+        {
+            _backHistory.Pop();
+        }
+        else if (!string.Equals(_filePath, fullPath, StringComparison.OrdinalIgnoreCase))
+        {
+            RememberCurrentVisit();
+        }
+
+        SetDocumentText(text);
+        _filePath = fullPath;
+        _fileFragment = fragment;
+        ReloadDocumentCommand.NotifyCanExecuteChanged();
+        GoBackCommand.NotifyCanExecuteChanged();
+        PreviewResourceRoot = Path.GetPathRoot(fullPath);
+        _isDirty = false;
+        RememberFile(fullPath);
+        WindowTitle = string.Format(
+            AppText.WindowTitleFormat,
+            Path.GetFileName(fullPath));
+        StatusText = isReload
+            ? string.Format(AppText.ReloadedStatusFormat, fullPath)
+            : fullPath;
+        RenderPreview(forceResourceRefresh: isReload, fragment: fragment);
     }
 
     private void SetDocumentText(string text)
@@ -630,7 +706,7 @@ internal partial class MainWindowViewModel : ObservableObject
         }
     }
 
-    private void RenderPreview(bool forceResourceRefresh = false)
+    private void RenderPreview(bool forceResourceRefresh = false, string fragment = "")
     {
         if (_isPreviewReady)
         {
@@ -639,13 +715,15 @@ internal partial class MainWindowViewModel : ObservableObject
             PreviewRevision++;
             PreviewHtml = BuildHtml(
                 includePreviewBridge: true,
-                forceResourceRefresh: forceResourceRefresh);
+                forceResourceRefresh: forceResourceRefresh,
+                fragment: fragment);
         }
     }
 
     private string BuildHtml(
         bool includePreviewBridge,
-        bool forceResourceRefresh = false)
+        bool forceResourceRefresh = false,
+        string fragment = "")
     {
         var title = WebUtility.HtmlEncode(
             Path.GetFileNameWithoutExtension(_filePath)
@@ -659,7 +737,8 @@ internal partial class MainWindowViewModel : ObservableObject
                 : string.Empty)
             + (forceResourceRefresh
                 ? HtmlTemplates.CreateResourceReloadScript(++_previewResourceVersion)
-                : string.Empty);
+                : string.Empty)
+            + (fragment.Length > 1 ? HtmlTemplates.CreateInitialAnchorScript(fragment) : string.Empty);
 
         return HtmlTemplates.BuildDocument(
             BuildBaseTag(),
@@ -735,9 +814,8 @@ internal partial class MainWindowViewModel : ObservableObject
         return Path.Combine(root, string.Join(Path.DirectorySeparatorChar, segments));
     }
 
-    private void OpenLocalFile(string path)
+    private void OpenLocalFile(string path, string fragment)
     {
-        // Anchors resolved against the base directory do not refer to real files.
         if (!File.Exists(path))
         {
             return;
@@ -745,7 +823,15 @@ internal partial class MainWindowViewModel : ObservableObject
 
         if (DocumentConstants.IsMarkdownFilePath(path))
         {
-            OpenFile(path);
+            if (fragment.Length > 1 && string.Equals(
+                    Path.GetFullPath(path), _filePath, StringComparison.OrdinalIgnoreCase))
+            {
+                _fileFragment = fragment;
+                RenderPreview(fragment: fragment);
+                return;
+            }
+
+            OpenFile(path, fragment: fragment);
             return;
         }
 

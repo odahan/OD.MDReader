@@ -21,6 +21,9 @@
         <KeyBinding Key="O"
                     Modifiers="Control"
                     Command="{Binding OpenDocumentCommand}" />
+        <KeyBinding Key="Left"
+                    Modifiers="Alt"
+                    Command="{Binding GoBackCommand}" />
         <KeyBinding Key="S"
                     Modifiers="Control"
                     Command="{Binding SaveCommand}" />
@@ -77,6 +80,9 @@
             </MenuItem>
 
             <MenuItem Header="{x:Static constants:UiText.ViewMenu}">
+                <MenuItem Header="{x:Static constants:UiText.BackMenuItem}"
+                          Command="{Binding GoBackCommand}"
+                          InputGestureText="{x:Static constants:UiText.BackShortcut}" />
                 <MenuItem Header="{x:Static constants:UiText.ReloadMenuItem}"
                           Command="{Binding ReloadDocumentCommand}" />
                 <Separator />

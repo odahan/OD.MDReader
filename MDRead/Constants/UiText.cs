@@ -44,6 +44,9 @@ public static class UiText
     /// <summary>Gets the rendered HTML tab header.</summary>
     public const string HtmlTabHeader = "HTML";
 
+    /// <summary>Gets the Back command header.</summary>
+    public const string BackMenuItem = "_Back";
+
     /// <summary>Gets the Reload command header.</summary>
     public const string ReloadMenuItem = "_Reload";
 
@@ -64,6 +67,9 @@ public static class UiText
 
     /// <summary>Gets the Open command shortcut text.</summary>
     public const string OpenShortcut = "Ctrl+O";
+
+    /// <summary>Gets the Back command shortcut text.</summary>
+    public const string BackShortcut = "Alt+Left Arrow";
 
     /// <summary>Gets the Save command shortcut text.</summary>
     public const string SaveShortcut = "Ctrl+S";

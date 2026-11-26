@@ -63,6 +63,70 @@ public sealed class MainWindowViewModelSecurityTests
         Assert.Empty(context.Dialogs.Messages);
     }
 
+    [Theory]
+    [InlineData("relative")]
+    [InlineData("file-uri")]
+    [InlineData("drive-reference")]
+    public void OpenPreviewTarget_PreservesMarkdownHeadingFragment(string linkType)
+    {
+        using var temporaryDirectory = new TemporaryDirectory();
+        var source = temporaryDirectory.GetPath("links.md");
+        var destination = temporaryDirectory.GetPath("Package #1.md");
+        const string fragment = "#document-reranking";
+        var fileUri = new Uri(destination);
+        var href = linkType switch
+        {
+            "relative" => "Package%20%231.md" + fragment,
+            "file-uri" => fileUri.AbsoluteUri + fragment,
+            _ => "/" + fileUri.AbsoluteUri["file:///".Length..] + fragment
+        };
+        File.WriteAllText(source, $"[Reranking]({href})");
+        File.WriteAllText(destination, "## Document reranking");
+        var context = new ViewModelTestContext();
+        var viewModel = context.CreateViewModel(source);
+        viewModel.InitializePreview();
+        Assert.Contains($"href=\"{href}\"", viewModel.PreviewHtml);
+        var baseUrl = Regex.Match(
+            viewModel.PreviewHtml, "<base href=\"([^\"]+)\">").Groups[1].Value;
+        var target = linkType == "relative" ? new Uri(new Uri(baseUrl), href).AbsoluteUri : href;
+
+        viewModel.OpenPreviewTarget(target);
+
+        Assert.Equal(destination, viewModel.StatusText);
+        Assert.Contains("id=\"document-reranking\"", viewModel.PreviewHtml);
+        Assert.Contains(HtmlTemplates.CreateInitialAnchorScript(fragment), viewModel.PreviewHtml);
+        Assert.Empty(context.Shell.Targets);
+        Assert.Empty(context.Dialogs.Messages);
+    }
+
+    [Theory]
+    [InlineData("native-path")]
+    [InlineData("file-uri")]
+    [InlineData("drive-reference")]
+    public void InitializePreview_OpensMarkdownAtLinkedHeading(string targetType)
+    {
+        using var temporaryDirectory = new TemporaryDirectory();
+        var destination = temporaryDirectory.GetPath("Package #1.md");
+        const string fragment = "#document-reranking";
+        File.WriteAllText(destination, "## Document reranking");
+        var uri = new Uri(destination).AbsoluteUri;
+        var target = targetType switch
+        {
+            "native-path" => destination,
+            "file-uri" => uri,
+            _ => "/" + uri["file:///".Length..]
+        };
+        var context = new ViewModelTestContext();
+        var viewModel = context.CreateViewModel(target + fragment);
+
+        viewModel.InitializePreview();
+
+        Assert.Empty(context.Dialogs.Messages);
+        Assert.Equal(destination, viewModel.StatusText);
+        Assert.Contains("id=\"document-reranking\"", viewModel.PreviewHtml);
+        Assert.Contains(HtmlTemplates.CreateInitialAnchorScript(fragment), viewModel.PreviewHtml);
+    }
+
     [Fact]
     public void OpenPreviewTarget_VirtualHostWithoutDocumentDoesNotLaunch()
     {
