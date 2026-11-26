@@ -17,4 +17,6 @@ internal sealed class UserSettings
     /// <summary>Gets or sets whether the dark theme is enabled.</summary>
     public bool IsDark { get; set; } = true;
 
+    /// <summary>Gets or sets whether the application should start in word wrap mode.</summary>
+    public bool IsWordWrapEnabled { get; set; } = true;
 }

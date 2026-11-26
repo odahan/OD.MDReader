@@ -85,6 +85,7 @@ internal partial class MainWindowViewModel : ObservableObject
         _startupArguments = startupArguments.ToArray();
         _settings = settingsService.Load();
         _isDarkTheme = ResolveInitialTheme(_settings.IsDark, _startupArguments);
+        _isWordWrapEnabled = _settings.IsWordWrapEnabled;
         RefreshRecentFiles();
     }
 
@@ -476,6 +477,12 @@ internal partial class MainWindowViewModel : ObservableObject
         {
             _editorOperations.FocusEditor();
         }
+    }
+
+    partial void OnIsWordWrapEnabledChanged(bool value)
+    {
+        _settings.IsWordWrapEnabled = value;
+        SaveSettings();
     }
 
     private bool CanExitPreview() => !IsMarkdownTabSelected;

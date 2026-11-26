@@ -1,6 +1,7 @@
 using MDRead.Constants;
 using MDRead.Models;
 using MDRead.Services;
+using MDRead.ViewModels;
 
 namespace MDRead.Tests;
 
@@ -18,7 +19,8 @@ public sealed class MainWindowViewModelStateTests
             {
                 Settings = new UserSettings
                 {
-                    IsDark = false
+                    IsDark = false,
+                    IsWordWrapEnabled = false
                 }
             }
         };
@@ -95,16 +97,52 @@ public sealed class MainWindowViewModelStateTests
         Assert.False(viewModel.ExitPreviewCommand.CanExecute(null));
     }
 
-    [Fact]
-    public void WordWrap_CanBeEnabledWithoutPersistingASetting()
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void WordWrap_UpdatesAndSavesSettingsImmediately(bool initialValue)
     {
         var context = new ViewModelTestContext();
+        context.Settings.Settings.IsWordWrapEnabled = initialValue;
         var viewModel = context.CreateViewModel();
 
-        viewModel.IsWordWrapEnabled = true;
-
-        Assert.True(viewModel.IsWordWrapEnabled);
+        Assert.Equal(initialValue, viewModel.IsWordWrapEnabled);
         Assert.Equal(0, context.Settings.SaveCount);
+
+        viewModel.IsWordWrapEnabled = !initialValue;
+
+        Assert.Equal(!initialValue, viewModel.IsWordWrapEnabled);
+        Assert.Equal(!initialValue, context.Settings.Settings.IsWordWrapEnabled);
+        Assert.Equal(1, context.Settings.SaveCount);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void WordWrap_PersistsAcrossViewModelInstances(bool initialValue)
+    {
+        using var temporaryDirectory = new TemporaryDirectory();
+        var settingsPath = temporaryDirectory.GetPath("settings.json");
+        var settingsService = new JsonSettingsService(settingsPath);
+        settingsService.Save(new UserSettings { IsWordWrapEnabled = initialValue });
+        var context = new ViewModelTestContext();
+
+        MainWindowViewModel CreateViewModel() => new(
+            context.Dialogs,
+            context.Editor,
+            context.DesktopShortcuts,
+            context.FileAssociations,
+            context.Shell,
+            new JsonSettingsService(settingsPath),
+            []);
+
+        var viewModel = CreateViewModel();
+        Assert.Equal(initialValue, viewModel.IsWordWrapEnabled);
+
+        viewModel.IsWordWrapEnabled = !initialValue;
+
+        var restartedViewModel = CreateViewModel();
+        Assert.Equal(!initialValue, restartedViewModel.IsWordWrapEnabled);
     }
 
     [Fact]
